@@ -1,0 +1,164 @@
+{
+ "amodal_containment": {
+  "pass": true,
+  "detail": "max share of visible pixels outside the full outline 0.0003; "
+ },
+ "amputation_truth": {
+  "pass": true,
+  "detail": "all amputated sites: stump present, no distal part, distal joints removed"
+ },
+ "hidden_intact_and_occluder_identity": {
+  "pass": true,
+  "detail": "P03: occluded sites ['LUE', 'LLE']; terminal behind occluder ['LUE'] kind ['medic_arm']; causes a ['occluded', 'intact_visible', 'intact_visible', 'intact_visible'] | P04: occluded sites ['RUE']; terminal behind occluder ['RUE'] kind ['gear_bag']; causes a ['intact_visible', 'amputated_hidden', 'intact_visible', 'intact_visible']"
+ },
+ "out_of_frame": {
+  "pass": true,
+  "detail": "P10b out-of-frame terminals ['RLE']; out-of-frame px [0, 0, 89, 14425]"
+ },
+ "endpoint_representation": {
+  "pass": true,
+  "detail": "terminal point, cause and owner stored for all sites"
+ },
+ "treatment_and_injury_truth": {
+  "pass": true,
+  "detail": "P05 LUE visible/native a 42/95 b 418/428 | P06 LLE visible/native a 0/68 b 0/38"
+ },
+ "laterality": {
+  "pass": true,
+  "detail": "a {'LUE': 'amputation', 'RUE': 'no_injury', 'LLE': 'wound', 'RLE': 'no_injury'} b {'LUE': 'no_injury', 'RUE': 'amputation', 'LLE': 'no_injury', 'RLE': 'wound'}"
+ },
+ "provenance": {
+  "pass": true,
+  "detail": "all fields present"
+ },
+ "performance": {
+  "pass": true,
+  "detail": "20 scenes; seconds per scene median 33.0 max 36.5; kB per scene median 85; device ['CPU']; threads [2]"
+ },
+ "regression": {
+  "pass": true,
+  "detail": "pass: scene4 reproduces scene3 RGB, part3 and ID bit-identically (C000, PYTHONHASHSEED=0); scene3 without a fixed hash seed is not reproducible run to run"
+ },
+ "_causes": {
+  "P01a": {
+   "LUE": "intact_visible",
+   "RUE": "intact_visible",
+   "LLE": "intact_visible",
+   "RLE": "intact_visible"
+  },
+  "P01b": {
+   "LUE": "intact_visible",
+   "RUE": "intact_visible",
+   "LLE": "intact_visible",
+   "RLE": "amputated_visible"
+  },
+  "P02a": {
+   "LUE": "intact_visible",
+   "RUE": "intact_visible",
+   "LLE": "intact_visible",
+   "RLE": "intact_visible"
+  },
+  "P02b": {
+   "LUE": "amputated_visible",
+   "RUE": "intact_visible",
+   "LLE": "intact_visible",
+   "RLE": "intact_visible"
+  },
+  "P03a": {
+   "LUE": "occluded",
+   "RUE": "intact_visible",
+   "LLE": "intact_visible",
+   "RLE": "intact_visible"
+  },
+  "P03b": {
+   "LUE": "intact_visible",
+   "RUE": "intact_visible",
+   "LLE": "intact_visible",
+   "RLE": "intact_visible"
+  },
+  "P04a": {
+   "LUE": "intact_visible",
+   "RUE": "amputated_hidden",
+   "LLE": "intact_visible",
+   "RLE": "intact_visible"
+  },
+  "P04b": {
+   "LUE": "intact_visible",
+   "RUE": "amputated_visible",
+   "LLE": "intact_visible",
+   "RLE": "intact_visible"
+  },
+  "P05a": {
+   "LUE": "intact_visible",
+   "RUE": "intact_visible",
+   "LLE": "intact_visible",
+   "RLE": "intact_visible"
+  },
+  "P05b": {
+   "LUE": "intact_visible",
+   "RUE": "intact_visible",
+   "LLE": "intact_visible",
+   "RLE": "intact_visible"
+  },
+  "P06a": {
+   "LUE": "intact_visible",
+   "RUE": "intact_visible",
+   "LLE": "intact_visible",
+   "RLE": "intact_visible"
+  },
+  "P06b": {
+   "LUE": "intact_visible",
+   "RUE": "intact_visible",
+   "LLE": "intact_visible",
+   "RLE": "intact_visible"
+  },
+  "P07a": {
+   "LUE": "intact_visible",
+   "RUE": "intact_visible",
+   "LLE": "intact_visible",
+   "RLE": "intact_visible"
+  },
+  "P07b": {
+   "LUE": "intact_visible",
+   "RUE": "intact_visible",
+   "LLE": "intact_visible",
+   "RLE": "intact_visible"
+  },
+  "P08a": {
+   "LUE": "occluded",
+   "RUE": "intact_visible",
+   "LLE": "intact_visible",
+   "RLE": "intact_visible"
+  },
+  "P08b": {
+   "LUE": "intact_visible",
+   "RUE": "occluded",
+   "LLE": "intact_visible",
+   "RLE": "intact_visible"
+  },
+  "P09a": {
+   "LUE": "amputated_visible",
+   "RUE": "intact_visible",
+   "LLE": "intact_visible",
+   "RLE": "intact_visible"
+  },
+  "P09b": {
+   "LUE": "intact_visible",
+   "RUE": "amputated_visible",
+   "LLE": "intact_visible",
+   "RLE": "intact_visible"
+  },
+  "P10a": {
+   "LUE": "intact_visible",
+   "RUE": "intact_visible",
+   "LLE": "amputated_visible",
+   "RLE": "intact_visible"
+  },
+  "P10b": {
+   "LUE": "intact_visible",
+   "RUE": "intact_visible",
+   "LLE": "amputated_visible",
+   "RLE": "out_of_frame"
+  }
+ }
+}
