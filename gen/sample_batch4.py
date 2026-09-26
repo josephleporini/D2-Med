@@ -1,9 +1,12 @@
 """Scene sampler vNext. Usage:
   python3 sample_batch4.py pilot <out_dir> [seed]      20 paired pathological scenes (10 pairs, spec v1.1 section 10.6)
+  python3 sample_batch4.py split <name> <n> <seed> <out_dir> [challenge]
+        v3 base mix (sample_batch3) with split-prefixed scene ids; 'challenge' forces one confuser per scene
 Each pair shares casualty, pose, camera and seed and differs in one factor; 'pair' records the pair id, the member
 (a/b), the factor and what each member should show, so pilot_check.py can test the truth products.
 """
-import json, os, sys
+import json, os, sys, glob, subprocess
+import numpy as np
 
 BASE = dict(body_yaw=0, skin='tan', floor='concrete', lighting='indoor_flat', sun_el=50, sun_az=140, azimuth=0,
             elevation=60, framing='full', samples=16, wounds={}, amputations={}, tourniquets=[], occluder='none',
@@ -47,6 +50,47 @@ def pilot(out, seed=4242):
     print('pilot params', n)
 
 
+PREFIX = {'train5': 'T', 'dev5': 'D', 'test5': 'X', 'challenge5': 'H'}
+CONFUSERS = ['treatment_cue_without_visible_injury', 'tq_no_wound', 'hidden_wound', 'occluded_end', 'crossing_limbs']
+SITES = ['LUE', 'RUE', 'LLE', 'RLE']
+
+
+def confuse(p, flag, rng):
+    free = [s for s in SITES if s not in p['amputations']]
+    site = str(rng.choice(free))
+    if flag == 'treatment_cue_without_visible_injury':
+        p['wounds'][site] = 'penetrating'; p['wound_surface'] = {site: 'back'}; p['tourniquets'] = [site]
+    elif flag == 'tq_no_wound':
+        p['wounds'].pop(site, None); p['tourniquets'] = [site]
+    elif flag == 'hidden_wound':
+        p['wounds'][site] = 'penetrating'; p['wound_surface'] = {site: 'back'}
+        p['tourniquets'] = [t for t in p['tourniquets'] if t != site]
+    elif flag == 'occluded_end':
+        p['occluder'] = str(rng.choice(['medic_arm', 'gear_bag'])); p['occ_target'] = 'limb_end'; p['occ_site'] = site
+    elif flag == 'crossing_limbs':
+        p['limb_pose'] = 'arm_across'; site = None
+    p['confusers'] = [flag]; p['confuser_site'] = site
+
+
+def split(name, n, seed, out, challenge=False):
+    tmp = os.path.join(out, '_tmp'); os.makedirs(tmp, exist_ok=True)
+    subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sample_batch3.py'), '0', str(n), tmp, str(seed), '16'],
+                   check=True, stdout=subprocess.DEVNULL)
+    rng = np.random.default_rng(seed + 31337)
+    for i, f in enumerate(sorted(glob.glob(os.path.join(tmp, 'C*_params.json')))):
+        p = json.load(open(f)); p['scene_id'] = f'{PREFIX[name]}{i:04d}'; p['split'] = name
+        if challenge:
+            confuse(p, CONFUSERS[i % len(CONFUSERS)], rng)
+        json.dump(p, open(os.path.join(out, p['scene_id'] + '_params.json'), 'w'), indent=1)
+        os.remove(f)
+    for f in glob.glob(os.path.join(tmp, '*')):
+        os.remove(f)
+    os.rmdir(tmp)
+    print('split params', name, n)
+
+
 if __name__ == '__main__':
     if sys.argv[1] == 'pilot':
         pilot(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 4242)
+    elif sys.argv[1] == 'split':
+        split(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5], len(sys.argv) > 6 and sys.argv[6] == 'challenge')
