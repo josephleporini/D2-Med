@@ -8,7 +8,7 @@
 #   - heartbeat line every 60 s (elapsed, load, last output line) so a silent job is visible
 #   - OUT=/workspace/probeB/out/<job> is exported; jobs must write results there (volume, not container disk)
 #   - writes OUT/_job.json (commit, command, start, end, exit code, pod)
-#   - on exit: KEEP_ALIVE=1 keeps the pod up; otherwise it stops itself (runpodctl) so billing ends
+#   - on exit: KEEP_ALIVE=1 keeps the pod up; otherwise it terminates itself (runpodctl remove pod) so billing ends
 set -uo pipefail
 JOB=$1; shift
 REPO=/workspace/probeB/repo
@@ -33,7 +33,8 @@ echo "[job $JOB] JOB_DONE rc=$RC end $END"
 if [ "${KEEP_ALIVE:-0}" != "1" ]; then
   sleep 20   # let the log stream flush
   if command -v runpodctl >/dev/null 2>&1 && [ -n "${RUNPOD_POD_ID:-}" ]; then
-    runpodctl stop pod "$RUNPOD_POD_ID" || echo "[job $JOB] self-stop failed; terminate from the console"
+    # pods with a network volume cannot be stopped, only terminated; outputs are already on the volume
+    runpodctl remove pod "$RUNPOD_POD_ID" || runpodctl stop pod "$RUNPOD_POD_ID" || echo "[job $JOB] self-terminate failed; terminate from the console"
   else
     echo "[job $JOB] runpodctl unavailable; terminate from the console"
   fi
