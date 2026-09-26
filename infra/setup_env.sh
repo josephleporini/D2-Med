@@ -17,9 +17,12 @@ if [ -n "$need" ]; then
 fi
 
 # 2. uv and the interpreter the venv was built on (the venv symlinks into the uv python dir)
-command -v uv >/dev/null 2>&1 || { log "install uv"; pip install -q uv 2>/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh; export PATH=$HOME/.local/bin:$PATH; }
 if ! "$VENV/bin/python" -c 'import sys' >/dev/null 2>&1; then
-  log "uv python install $PYVER"; uv python install "$PYVER" >/dev/null
+  # the venv symlinks into the uv-managed interpreter recorded in pyvenv.cfg; recreate exactly that one
+  PYVER=$(sed -n 's/^version_info *= *//p;s/^version *= *//p' "$VENV/pyvenv.cfg" | head -1); PYVER=${PYVER:-3.11.16}
+  log "uv python install $PYVER (home: $(sed -n 's/^home *= *//p' "$VENV/pyvenv.cfg"))"
+  pip install -q -U uv >/dev/null 2>&1 || true; export PATH=$HOME/.local/bin:$PATH
+  uv python install "$PYVER" >/dev/null || { log "FATAL uv python install $PYVER failed"; exit 3; }
 fi
 PY="$VENV/bin/python"
 "$PY" -c 'import numpy, cv2, torch, sklearn' || { log "FATAL venv broken: $VENV"; exit 2; }
@@ -27,7 +30,7 @@ PY="$VENV/bin/python"
 # 3. sam2: the J15 jobs replaced the editable install with the git build; accept either, record which
 if ! "$PY" -c 'import sam2' >/dev/null 2>&1; then
   log "install sam2 (git, no CUDA ext)"
-  SAM2_BUILD_CUDA=0 uv pip install --python "$PY" --no-deps git+https://github.com/facebookresearch/sam2.git \
+  command -v uv >/dev/null || pip install -q -U uv >/dev/null; SAM2_BUILD_CUDA=0 uv pip install --python "$PY" --no-deps git+https://github.com/facebookresearch/sam2.git \
     hydra-core iopath omegaconf antlr4-python3-runtime portalocker >/dev/null
 fi
 

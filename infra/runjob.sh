@@ -19,12 +19,13 @@ exec > >(tee -a "$LOG") 2>&1
 COMMIT=$(cat "$REPO/COMMIT" 2>/dev/null || echo unknown)
 START=$(date -u +%FT%TZ)
 echo "[job $JOB] start $START commit $COMMIT pod ${RUNPOD_POD_ID:-?} cmd: $*"
-eval "$(bash "$REPO/infra/setup_env.sh" ${LOCK:+--lock} | tail -1)"; export PY
+SETUP=$(bash "$REPO/infra/setup_env.sh" ${LOCK:+--lock}); SRC=$?; echo "$SETUP"
+PY=$(echo "$SETUP" | sed -n 's/^PY=//p' | tail -1); export PY
+if [ $SRC -ne 0 ] || [ -z "$PY" ]; then echo "[job $JOB] SETUP_FAILED rc=$SRC"; RC_SETUP=1; fi
 ( while sleep 60; do echo "[hb $JOB] $(date -u +%H:%M:%S) load $(cut -d' ' -f1 /proc/loadavg) last: $(tail -c 300 "$LOG" | tr '\n' ' ' | tail -c 120)"; done ) &
 HB=$!
 cd "$REPO"
-stdbuf -oL -eL "$@"
-RC=$?
+if [ -z "${RC_SETUP:-}" ]; then stdbuf -oL -eL "$@"; RC=$?; else RC=90; fi
 kill $HB 2>/dev/null
 END=$(date -u +%FT%TZ)
 printf '{"job":"%s","commit":"%s","cmd":"%s","start":"%s","end":"%s","rc":%d,"pod":"%s"}\n' \
