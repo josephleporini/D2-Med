@@ -1,0 +1,30 @@
+{
+ "scene_id": "C001",
+ "seed": 12341,
+ "body_position": "prone",
+ "limb_pose": "knee_bent",
+ "body_yaw": 322,
+ "amputations": {
+  "RUE": "disarticulation"
+ },
+ "skin": "dark",
+ "floor": "gravel",
+ "occluder": "blanket",
+ "lighting": "low_light",
+ "sun_el": 48,
+ "sun_az": 242,
+ "azimuth": 45,
+ "elevation": 60,
+ "framing": "lower_crop",
+ "samples": 16,
+ "wounds": {
+  "LLE": "penetrating"
+ },
+ "garments": {
+  "top": "long",
+  "bottom": "none",
+  "boots": true
+ },
+ "tourniquets": [],
+ "hidden_wound_p": 0.2
+}

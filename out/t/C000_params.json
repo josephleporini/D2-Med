@@ -1,0 +1,26 @@
+{
+ "scene_id": "C000",
+ "seed": 12340,
+ "body_position": "supine",
+ "limb_pose": "abducted",
+ "body_yaw": 285,
+ "amputations": {},
+ "skin": "dark",
+ "floor": "litter",
+ "occluder": "none",
+ "lighting": "indoor_flat",
+ "sun_el": 50,
+ "sun_az": 158,
+ "azimuth": 0,
+ "elevation": 85,
+ "framing": "full",
+ "samples": 16,
+ "wounds": {},
+ "garments": {
+  "top": "short",
+  "bottom": "long",
+  "boots": true
+ },
+ "tourniquets": [],
+ "hidden_wound_p": 0.2
+}

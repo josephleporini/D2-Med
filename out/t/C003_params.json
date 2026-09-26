@@ -1,0 +1,28 @@
+{
+ "scene_id": "C003",
+ "seed": 12343,
+ "body_position": "left_lateral",
+ "limb_pose": "knee_bent",
+ "body_yaw": 313,
+ "amputations": {
+  "LUE": "above_joint"
+ },
+ "skin": "tan",
+ "floor": "concrete",
+ "occluder": "none",
+ "lighting": "indoor_flat",
+ "sun_el": 55,
+ "sun_az": 14,
+ "azimuth": 135,
+ "elevation": 30,
+ "framing": "upper_crop",
+ "samples": 16,
+ "wounds": {},
+ "garments": {
+  "top": "long",
+  "bottom": "long",
+  "boots": true
+ },
+ "tourniquets": [],
+ "hidden_wound_p": 0.2
+}

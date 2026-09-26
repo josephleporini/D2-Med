@@ -1,0 +1,78 @@
+[
+ {
+  "scene_id": "C000",
+  "seed": 12340,
+  "body_position": "supine",
+  "limb_pose": "abducted",
+  "body_yaw": 285,
+  "amputations": {},
+  "skin": "dark",
+  "floor": "litter",
+  "occluder": "none",
+  "lighting": "indoor_flat",
+  "sun_el": 50,
+  "sun_az": 158,
+  "azimuth": 0,
+  "elevation": 85,
+  "framing": "full",
+  "samples": 32
+ },
+ {
+  "scene_id": "C001",
+  "seed": 12341,
+  "body_position": "prone",
+  "limb_pose": "knee_bent",
+  "body_yaw": 322,
+  "amputations": {
+   "RUE": "disarticulation"
+  },
+  "skin": "dark",
+  "floor": "gravel",
+  "occluder": "blanket",
+  "lighting": "low_light",
+  "sun_el": 48,
+  "sun_az": 242,
+  "azimuth": 45,
+  "elevation": 60,
+  "framing": "lower_crop",
+  "samples": 32
+ },
+ {
+  "scene_id": "C002",
+  "seed": 12342,
+  "body_position": "right_lateral",
+  "limb_pose": "arm_overhead",
+  "body_yaw": 237,
+  "amputations": {},
+  "skin": "peach",
+  "floor": "gravel",
+  "occluder": "gear_bag",
+  "lighting": "low_light",
+  "sun_el": 35,
+  "sun_az": 312,
+  "azimuth": 90,
+  "elevation": 45,
+  "framing": "full",
+  "samples": 32
+ },
+ {
+  "scene_id": "C003",
+  "seed": 12343,
+  "body_position": "left_lateral",
+  "limb_pose": "knee_bent",
+  "body_yaw": 313,
+  "amputations": {
+   "LUE": "above_joint"
+  },
+  "skin": "tan",
+  "floor": "concrete",
+  "occluder": "none",
+  "lighting": "indoor_flat",
+  "sun_el": 55,
+  "sun_az": 14,
+  "azimuth": 135,
+  "elevation": 30,
+  "framing": "upper_crop",
+  "samples": 32
+ }
+]

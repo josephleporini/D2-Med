@@ -74,7 +74,9 @@ def setup3(prm, rng):
     Pocc = P
     if prm.get('occ_target') == 'limb_end' and prm['occluder'] in ('gear_bag', 'medic_arm'):
         ends = {'hand', 'foot', 'stump', 'forearm', 'shank'}
-        vi = sorted({v for p_, fp in zip(ob.data.polygons, fpart) if fp[2:] in ends for v in p_.vertices})
+        tsite = prm.get('occ_site')     # vNext pilot: aim at one named limb end (absent in v3 params)
+        vi = sorted({v for p_, fp, fs in zip(ob.data.polygons, fpart, fsite) if fp[2:] in ends and (tsite is None or fs == tsite)
+                     for v in p_.vertices})
         if vi:
             Pocc = P[vi]
     occ = S.add_occluder(prm['occluder'], Pocc, rng, (P.min(0), P.max(0)))
@@ -102,7 +104,7 @@ def setup3(prm, rng):
         part_objs += _split(posed, fp, PART3_CLASSES, PART3_COLORS, f'p3_{n}_', sc)
         site_objs += _split(posed, fs, SITE_NAMES, S.ID_COLORS, f'id_{n}_', sc)
     return dict(sc=sc, ob=ob, shells=shells, P=P, floor=floor, occ=occ, cam=cam, part_objs=part_objs,
-                site_objs=site_objs, wounds=wounds)
+                site_objs=site_objs, wounds=wounds, fpart=fpart, fsite=fsite, arm=arm)
 
 
 def _id_pass(ctx, show, path, occ_color, res=S.ID_RES):

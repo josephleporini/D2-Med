@@ -1,0 +1,32 @@
+{
+ "scene_id": "C002",
+ "seed": 12342,
+ "body_position": "right_lateral",
+ "limb_pose": "arm_overhead",
+ "body_yaw": 237,
+ "amputations": {},
+ "skin": "peach",
+ "floor": "gravel",
+ "occluder": "gear_bag",
+ "lighting": "low_light",
+ "sun_el": 35,
+ "sun_az": 312,
+ "azimuth": 90,
+ "elevation": 45,
+ "framing": "full",
+ "samples": 16,
+ "wounds": {
+  "LUE": "laceration",
+  "LLE": "open_fracture"
+ },
+ "garments": {
+  "top": "long",
+  "bottom": "none",
+  "boots": false
+ },
+ "tourniquets": [
+  "LLE"
+ ],
+ "hidden_wound_p": 0.2,
+ "occ_target": "limb_end"
+}

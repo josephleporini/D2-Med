@@ -1,0 +1,121 @@
+{
+ "scene_id": "C000",
+ "params": {
+  "scene_id": "C000",
+  "seed": 12340,
+  "body_position": "supine",
+  "limb_pose": "abducted",
+  "body_yaw": 285,
+  "amputations": {},
+  "skin": "dark",
+  "floor": "litter",
+  "occluder": "none",
+  "lighting": "indoor_flat",
+  "sun_el": 50,
+  "sun_az": 158,
+  "azimuth": 0,
+  "elevation": 85,
+  "framing": "full",
+  "samples": 16,
+  "wounds": {},
+  "garments": {
+   "top": "short",
+   "bottom": "long",
+   "boots": true
+  },
+  "tourniquets": [],
+  "hidden_wound_p": 0.2
+ },
+ "visible_px": {
+  "LUE": 1686,
+  "RUE": 1614,
+  "LLE": 4803,
+  "RLE": 4671
+ },
+ "alone_px": {
+  "LUE": 1729,
+  "RUE": 1689,
+  "LLE": 4809,
+  "RLE": 4698
+ },
+ "visible_fraction": {
+  "LUE": 0.9751,
+  "RUE": 0.9556,
+  "LLE": 0.9988,
+  "RLE": 0.9943
+ },
+ "wound_visible_px": {
+  "LUE": 0,
+  "RUE": 0,
+  "LLE": 0,
+  "RLE": 0
+ },
+ "wounds": {},
+ "labels_by_threshold": {
+  "0.00": {
+   "LUE": "no_injury",
+   "RUE": "no_injury",
+   "LLE": "no_injury",
+   "RLE": "no_injury"
+  },
+  "0.10": {
+   "LUE": "no_injury",
+   "RUE": "no_injury",
+   "LLE": "no_injury",
+   "RLE": "no_injury"
+  },
+  "0.25": {
+   "LUE": "no_injury",
+   "RUE": "no_injury",
+   "LLE": "no_injury",
+   "RLE": "no_injury"
+  },
+  "0.50": {
+   "LUE": "no_injury",
+   "RUE": "no_injury",
+   "LLE": "no_injury",
+   "RLE": "no_injury"
+  }
+ },
+ "labels_wound_if_present": {
+  "0.00": {
+   "LUE": "no_injury",
+   "RUE": "no_injury",
+   "LLE": "no_injury",
+   "RLE": "no_injury"
+  },
+  "0.10": {
+   "LUE": "no_injury",
+   "RUE": "no_injury",
+   "LLE": "no_injury",
+   "RLE": "no_injury"
+  },
+  "0.25": {
+   "LUE": "no_injury",
+   "RUE": "no_injury",
+   "LLE": "no_injury",
+   "RLE": "no_injury"
+  },
+  "0.50": {
+   "LUE": "no_injury",
+   "RUE": "no_injury",
+   "LLE": "no_injury",
+   "RLE": "no_injury"
+  }
+ },
+ "headline_threshold": 0.1,
+ "camera": {
+  "location": [
+   -0.014103710651397705,
+   -0.1925479620695114,
+   3.219782590866089
+  ],
+  "target": [
+   -0.014103710651397705,
+   0.07064223289489746,
+   0.211505038976743
+  ],
+  "distance": 3.0197687692225643
+ },
+ "total_s": 32.2
+}
