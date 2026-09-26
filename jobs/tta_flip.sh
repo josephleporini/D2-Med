@@ -2,9 +2,10 @@
 # Test-time mirror experiment (dev3, adopted distilled model) + publish L1 and TTA results to DDData.
 set -u
 P=/workspace/probeB; R=$P/repo_git; X=$P/out/s15; F=$OUT
-for k in 0 1 2; do FLIP=1 SIDE_MODE=distill CAP_THREADS=4 $PY $R/jobs/sidehead2.py extract $P/models/seg3_side_distill.pt $P/out/dev3 dev3 $k 3 $F/dev3_f$k > $F/log_f$k.txt 2>&1 & done
+cp $R/jobs/sidehead2.py $P/gen/sidehead2_flip.py; cd $P/gen
+for k in 0 1 2; do FLIP=1 SIDE_MODE=distill CAP_THREADS=4 $PY sidehead2_flip.py extract $P/models/seg3_side_distill.pt $P/out/dev3 dev3 $k 3 $F/dev3_f$k > $F/log_f$k.txt 2>&1 & done
 ( while sleep 120; do echo PROG $(date -u +%T) $(cat $F/dev3_f*_sidec.jsonl 2>/dev/null | wc -l); done ) & PP=$!
-wait %1 %2 %3 2>/dev/null; wait; kill $PP 2>/dev/null
+for j in $(jobs -p); do [ $j != $PP ] && wait $j; done; kill $PP 2>/dev/null
 grep -h -E 'Traceback|Error|EXT_DONE' $F/log_f*.txt | grep -v onnxruntime | head -6
 $PY $R/jobs/tta_score.py $P/gen "$X/dev3_t*_sidec.jsonl" "$F/dev3_f*_sidec.jsonl" "$X/dev3_t*_ceil.jsonl" $F/tta_dev3.json
 # publish
