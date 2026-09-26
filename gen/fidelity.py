@@ -63,6 +63,10 @@ def add_wounds(ob, arm, fsite, fpart, prm, rng):
         limb = site[1:]; sd = site[0]
         pts = mk.chain_points(arm, site)
         cand = [i for i, (s, fp) in enumerate(zip(fsite, fpart)) if s == site and fp[2:] in LIMB_PARTS[limb][:2]]
+        surf = (prm.get('wound_surface') or {}).get(site)      # vNext: 'front' or 'back' of the body (rest pose, forward = -Y)
+        if surf:
+            fc = [i for i in cand if (ob.data.polygons[i].normal.y < 0) == (surf == 'front')]
+            cand = fc or cand
         if not cand:
             continue
         centres = {i: ob.data.polygons[i].center.copy() for i in cand}
@@ -176,6 +180,9 @@ def add_garments(ob, arm, fsite, fpart, prm, rng, label_id):
     return out
 
 
+TQ_BANDS = {}
+
+
 def add_tourniquets(ob, arm, fsite, fpart, prm, rng, label_id):
     out = []
     for site in prm.get('tourniquets', []):
@@ -189,6 +196,7 @@ def add_tourniquets(ob, arm, fsite, fpart, prm, rng, label_id):
             d, t = _seg_dist(ob.data.polygons[i].center, a, b)
             if abs(t - t0) * (b - a).length < w / 2 and 0 < t < 1:
                 keep.add(i)
+        TQ_BANDS[site] = {'t0': float(t0), 'w': float(w)}
         if not keep:
             continue
         c = TQ_COLOURS[int(rng.integers(len(TQ_COLOURS)))]

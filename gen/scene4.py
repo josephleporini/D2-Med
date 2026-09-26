@@ -179,6 +179,15 @@ def main_full(prm_path, out_dir):
         terminal[s] = {'x': round(x, 1), 'y': round(y, 1), 'in_frame': inf, 'amputated': amputated, 'cause': cause,
                        'owner_at_point': owner, 'occluder_kind': prm.get('occluder') if owner == 'occluder' else None}
 
+    # share of wound faces lying inside the tourniquet band (rest pose): the wound is under the tourniquet
+    import fidelity as FD
+    tq_cover = {s: None for s in mk.SITES}
+    for s, band in FD.TQ_BANDS.items():
+        wf = [po for po, lab in zip(ctx['ob'].data.polygons, ctx['fpart']) if lab == s + '_wound']
+        if wf:
+            a, b = mk.chain_points(arm, s)[0], mk.chain_points(arm, s)[1]
+            inside = [abs(FD._seg_dist(po.center, a, b)[1] - band['t0']) * (b - a).length < band['w'] / 2 for po in wf]
+            tq_cover[s] = round(sum(inside) / len(inside), 3)
     frac = {s: (vis[s] / alone[s] if alone[s] else 0.0) for s in mk.SITES}
     labels = {}
     for th in S3.THRESHOLDS:
@@ -194,7 +203,8 @@ def main_full(prm_path, out_dir):
                  'wound_present': s in ctx['wounds'], 'wound_visible_px': wound_px[s], 'wound_native_px': wound_native[s],
                  'amputated': s in prm['amputations'], 'amputation_level': prm['amputations'].get(s),
                  'stump_visible_px': stump_vis[s], 'stump_full_px': stump_full[s], 'distal_visible_px': distal_vis[s],
-                 'tourniquet': s in prm.get('tourniquets', []), 'tq_visible_px': tq_vis[s], 'tq_native_px': tq_native[s]}
+                 'tourniquet': s in prm.get('tourniquets', []), 'tq_visible_px': tq_vis[s], 'tq_native_px': tq_native[s],
+                 'wound_under_tourniquet_frac': tq_cover[s]}
              for s in mk.SITES}
     side = {'scene_id': sid, 'params': prm, 'truth': truth, 'terminal': terminal, 'joints': joints,
             'occluder': prm.get('occluder'), 'occ_target': prm.get('occ_target'), 'wounds': ctx['wounds'],

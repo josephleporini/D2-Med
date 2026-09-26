@@ -1,7 +1,7 @@
 {
  "amodal_containment": {
   "pass": true,
-  "detail": "max share of visible pixels outside the full outline 0.0003; "
+  "detail": "max share of visible pixels outside the full outline 0.0000; "
  },
  "amputation_truth": {
   "pass": true,
@@ -21,7 +21,7 @@
  },
  "treatment_and_injury_truth": {
   "pass": true,
-  "detail": "P05 LUE visible/native a 42/95 b 418/428 | P06 LLE visible/native a 0/68 b 0/38"
+  "detail": "P05 LUE visible/native a 176/176 b 42/68 | P06 LLE visible/native a 265/271 b 0/319"
  },
  "laterality": {
   "pass": true,
@@ -33,11 +33,11 @@
  },
  "performance": {
   "pass": true,
-  "detail": "20 scenes; seconds per scene median 33.0 max 36.5; kB per scene median 85; device ['CPU']; threads [2]"
+  "detail": "20 scenes; seconds per scene median 33.3 max 36.5; kB per scene median 85; device ['CPU']; threads [2]"
  },
  "regression": {
   "pass": true,
-  "detail": "pass: scene4 reproduces scene3 RGB, part3 and ID bit-identically (C000, PYTHONHASHSEED=0); scene3 without a fixed hash seed is not reproducible run to run"
+  "detail": "pass: scene4 reproduces scene3 bit-identically (C000, PYTHONHASHSEED=0)"
  },
  "_causes": {
   "P01a": {
