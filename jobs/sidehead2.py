@@ -24,6 +24,8 @@ from seg_features import square_crop
 M = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'models')
 
 
+FLIP = os.environ.get('FLIP') == '1'          # test-time mirror: extract on the horizontally flipped image
+SWAP = {'LUE': 'RUE', 'RUE': 'LUE', 'LLE': 'RLE', 'RLE': 'LLE'}
 MODE = os.environ.get('SIDE_MODE', 'joint')       # joint | distill | branch
 
 
@@ -202,6 +204,9 @@ def extract(ckpt, D, split, kk, nn_, prefix):
         img = letterbox(cv2.cvtColor(cv2.imread(os.path.join(D, sid + '.jpg')), cv2.COLOR_BGR2RGB))
         _, gside, _ = PT.decode3(os.path.join(D, sid + '_part3.png'))
         gside = cv2.resize(gside, (640, 480), interpolation=cv2.INTER_NEAREST)
+        if FLIP:   # mirrored person: positions flip and anatomical sides swap; site keys are swapped back on output
+            img = np.ascontiguousarray(img[:, ::-1]); gside = np.ascontiguousarray(gside[:, ::-1])
+            gside = np.where(gside == 1, 2, np.where(gside == 2, 1, gside)).astype(gside.dtype)
         near, dist = side_lookup(gside)
         bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
         boxes = m['det'](bgr)
@@ -244,7 +249,10 @@ def extract(ckpt, D, split, kk, nn_, prefix):
                 kk_[:, :2] = np.array(kpd['xy'], np.float32); kk_[:, 2] = np.array(kpd['score'], np.float32)
             np.savez_compressed(os.path.join(os.environ['SAVE_MAPS'], sid + '.npz'), seg=seg3, pl=np.clip(pleft * 255, 0, 255).astype(np.uint8), kp=kk_)
         for v, (cm_, e_, s_) in (('kp', (cm1, e1, s1)), ('side', (cmS, eS, sS)), ('sidec', (cmC, eC, sC)), ('ceil', (cmG, eG, sG))):
-            fo[v].write(json.dumps(dict(base, sites=site_rows(m, img, cm_, names, e_, s_, wm, tq))) + '\n'); fo[v].flush()
+            rows = site_rows(m, img, cm_, names, e_, s_, wm, tq)
+            if FLIP:
+                rows = {SWAP[k]: v_ for k, v_ in rows.items()}
+            fo[v].write(json.dumps(dict(base, flip=bool(FLIP), sites=rows)) + '\n'); fo[v].flush()
         fp.write(json.dumps(dict(scene=sid, split=split, kp=pix_acc(cm1, names, near, dist), side=pix_acc(cmS, names, near, dist),
                                  sidec=pix_acc(cmC, names, near, dist))) + '\n'); fp.flush()
         if (n + 1) % 20 == 0:
