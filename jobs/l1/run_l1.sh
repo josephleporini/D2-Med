@@ -24,7 +24,9 @@ for f in sorted(glob.glob('/workspace/probeB/out/checks/chk_*.jsonl')):
             o.write(json.dumps(dict(scene=r['scene'], split='dev3', labels=car['labels_by_threshold'], sites=r['pred_sites_ceil'], kp=None)) + '\n'); n += 1
 print('ORIG_ROWS', n)
 PYEOF
+set -f   # globs below are for score.py, not the shell
 SC="$PY $R/score/score.py --gen $R/gen --sidecars $P/out/dev3 --truth $P/out/checks/chk_*.jsonl --manifest $P/manifests/dev3.sha256 --images $P/out/dev3 --maps $P/out/s15/maps"
 $SC --phase L1_orig_seg_trueside --pred "$OUT/orig_dev3.jsonl" --out $OUT/orig
 $SC --phase L1_adopted_gated --pred "$P/out/s15/dev3_t*_sidec.jsonl" --side-truth "$P/out/s15/dev3_t*_ceil.jsonl" --prev $OUT/orig/ledger.jsonl --out $OUT/adopted
+set +f
 for a in orig adopted; do echo "==== RETRO $a"; cat $OUT/$a/retro.md | head -120; echo "==== METRICS $a"; cat $OUT/$a/metrics.json; ls -la $OUT/$a; done
