@@ -4,13 +4,13 @@
 #   2. checks (original segmenter, true map, rendered side) and adopted-model extraction, 3 shards each, concurrent
 #   3. manifest, ledgers for the original and adopted arms, publish
 set -u
-P=/workspace/probeB; R=${R:-$P/repo_git2}; DD=${DD:-$P/dddata_pod2}; D=$P/out/dev5
+P=/workspace/probeB; R=${R:-$P/repo_git2}; D=$P/out/dev5
 export SCENE_PREFIX=D
-git -C $DD remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/josephleporini/DDData.git
+# repair: the dev5 render pod's pushes failed (rebase without committer identity). Rebuild the missing dev5 batches from the
+# rendered scenes on the volume into a fresh clone: the driver skips existing scenes, renders any missing ones, then pushes.
+DD=$P/dddata_l2; rm -rf $DD
+SPLITS=dev5 JOBS=8 MAX_HOURS=2 W=$P/render5_dev DD=$DD R=$R bash $R/jobs/render_gpu.sh 2>&1 | grep -E 'BATCH_DONE|SPLIT_DONE|COUNT|RENDER_RC|DONE D|rror|fatal' | tail -30
 git -C $DD config user.email jslepo@gmail.com; git -C $DD config user.name "Joseph Leporini (pod)"
-# repair: the dev5 render pod's rebases stopped for lack of a committer identity; finish them and push the pending batches
-git -C $DD rebase --abort 2>/dev/null; rm -rf $DD/.git/rebase-merge $DD/.git/rebase-apply
-for t in 1 2 3; do git -C $DD pull -q --rebase origin main && git -C $DD push -q origin main && break; sleep 20; done
 echo "DDDATA_DEV5_BATCHES $(ls -d $DD/dev5/batch_* | wc -l) ahead=$(git -C $DD rev-list --count origin/main..HEAD)"
 mkdir -p $D $OUT/maps; cp $DD/dev5/batch_*/D* $D/
 N=$(ls $D/*_sidecar.json | wc -l); echo "SCENES dev5 $N"; [ $N -ge 470 ] || { echo "dev5 incomplete"; exit 4; }
