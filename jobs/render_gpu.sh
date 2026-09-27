@@ -2,8 +2,8 @@
 # GPU render of generator-vNext splits on a pod; resumable on the volume; publishes batches to DDData.
 # env: SPLITS (default "train5 test5 challenge5"), JOBS (default 4), MAX_HOURS (default 4, hard stop for cost)
 set -u
-R=/workspace/probeB/repo_git; A=/workspace/probeB/assets/mh; BV=/workspace/probeB/venv_bpy
-W=/workspace/probeB/render5; DD=/workspace/probeB/dddata_pod
+R=${R:-/workspace/probeB/repo_git}; A=/workspace/probeB/assets/mh; BV=/workspace/probeB/venv_bpy
+W=${W:-/workspace/probeB/render5}; DD=${DD:-/workspace/probeB/dddata_pod}
 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq libx11-6 libxrender1 libxxf86vm1 libxfixes3 libxi6 libxkbcommon0 libsm6 libice6 >/dev/null 2>&1
 export PATH=$HOME/.local/bin:$PATH; command -v uv >/dev/null || pip install -q uv
 [ -x $BV/bin/python ] || { uv venv -q --python 3.11 $BV && uv pip install -q --python $BV/bin/python bpy numpy; }
