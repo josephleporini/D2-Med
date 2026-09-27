@@ -121,6 +121,18 @@ def kp_error(kp, gtkp, site):
             'side_swap': bool(np.median(e_opp) < np.median(e_own))}
 
 
+def repo_commit():
+    root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+    f = os.path.join(root, 'COMMIT')
+    if os.path.exists(f):
+        return open(f).read().strip()
+    try:
+        import subprocess
+        return subprocess.check_output(['git', '-C', root, 'rev-parse', '--short', 'HEAD'], text=True).strip()
+    except Exception:
+        return 'unknown'
+
+
 def main():
     ap = argparse.ArgumentParser()
     for a in ('--phase', '--gen', '--pred', '--sidecars', '--out'):
@@ -257,7 +269,7 @@ def main():
 
     # metrics
     out = {'schema': SCHEMA, 'phase': A.phase, 'date_utc': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-           'rule': A.rule, 'C': C, 'manifest': man, 'commit': open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'COMMIT')).read().strip()
+           'rule': A.rule, 'C': C, 'manifest': man, 'commit': repo_commit()
            if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'COMMIT')) else None,
            'coverage': {'side_truth': round(float(has_side.mean()), 3), 'true_map': round(float(has_true.mean()), 3),
                         'gt_keypoints': round(len(gtkps) / max(len(pred), 1), 3)}}
