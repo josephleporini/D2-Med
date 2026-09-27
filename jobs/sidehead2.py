@@ -97,7 +97,7 @@ def train(dirs, steps, out, batch=8):
     dev = 'cuda'
     sd_ = int(os.environ.get('SEED', '0')); torch.manual_seed(sd_); np.random.seed(sd_)
     classes = PT.SEG3_CLASSES; nc = len(classes)
-    files = sorted(f for d in dirs.split(',') for f in glob.glob(os.path.join(d, 'C*_sidecar.json'))
+    files = sorted(f for d in dirs.split(',') for f in glob.glob(os.path.join(d, os.environ.get('SCENE_PREFIX', 'C') + '*_sidecar.json'))
                    if os.path.exists(f[:-len('_sidecar.json')] + '_part3.png'))
     base = lambda f: re.match(r'(C\d+)', os.path.basename(f)).group(1)
     val = [f for f in files if zlib.crc32(base(f).encode()) % 1000 < 100]; vs = set(val)
@@ -196,7 +196,7 @@ def extract(ckpt, D, split, kk, nn_, prefix):
     dev = m['dev']; print('EXT_DEV', dev, flush=True)
     net = SideModel(len(PT.SEG3_CLASSES), os.path.join(M, 'sam2_1_hiera_tiny.pt'))
     net.load_state_dict(torch.load(ckpt, map_location='cpu')); net.to(dev).eval()
-    files = sorted(glob.glob(os.path.join(D, 'C*_sidecar.json')))[kk::nn_]
+    files = sorted(glob.glob(os.path.join(D, os.environ.get('SCENE_PREFIX', 'C') + '*_sidecar.json')))[kk::nn_]
     fo = {v: open(f'{prefix}_{v}.jsonl', 'w') for v in ('kp', 'side', 'sidec', 'ceil')}
     fp = open(f'{prefix}_pix.jsonl', 'w'); t0 = time.time()
     for n, f in enumerate(files):
@@ -285,7 +285,7 @@ def iou(split_dir, ckpts):
     """part IoU on a scene dir with the ground-truth body box crop (SideSet eval geometry), for several checkpoints.
     ckpts: comma list; 'orig' means seg3_e2e_b. Also reports IoU by true visible-fraction band of the limb."""
     dev = 'cuda'; classes = PT.SEG3_CLASSES; nc = len(classes)
-    files = sorted(glob.glob(os.path.join(split_dir, 'C*_sidecar.json')))
+    files = sorted(glob.glob(os.path.join(split_dir, os.environ.get('SCENE_PREFIX', 'C') + '*_sidecar.json')))
     vset = SideSet(files, '3', False)
     out = {}
     for ck in ckpts.split(','):

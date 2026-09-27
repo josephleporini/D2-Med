@@ -138,7 +138,7 @@ def main():
     pred = load_jsonl(A.pred); side_t = load_jsonl(A.side_truth) if A.side_truth else {}; truth = load_jsonl(A.truth) if A.truth else {}
     cars, gtkps, car_path = {}, {}, {}
     for d in A.sidecars.split(','):
-        for f in glob.glob(os.path.join(d, 'C*_sidecar.json')):
+        for f in glob.glob(os.path.join(d, os.environ.get('SCENE_PREFIX', 'C') + '*_sidecar.json')):
             s = json.load(open(f)); cars[s['scene_id']] = s; car_path[s['scene_id']] = f
             g = f.replace('_sidecar.json', '_gtkp.json')
             if os.path.exists(g):

@@ -63,7 +63,7 @@ if __name__ == '__main__':
     D, split, kk, nn, out = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5]
     M = LE.M
     m = EV.load_models(os.path.join(M, 'seg3_e2e_b.pt'), os.path.join(M, 'lend3d.pt'), os.path.join(M, 'lwound2.pt'))
-    files = sorted(glob.glob(os.path.join(D, 'C*_sidecar.json')))[kk::nn]
+    files = sorted(glob.glob(os.path.join(D, os.environ.get('SCENE_PREFIX', 'C') + '*_sidecar.json')))[kk::nn]
     fo = open(out, 'w'); t0 = time.time()
     for n, f in enumerate(files):
         sid = os.path.basename(f)[:-len('_sidecar.json')]; sc = json.load(open(f)); prm = sc['params']
@@ -79,7 +79,7 @@ if __name__ == '__main__':
         k, s = m['wb'].pose_model(bgr, bboxes=boxes)
         rec = dict(scene=sid, split=split, position=prm.get('body_position'), yaw=prm.get('body_yaw'),
                    facing_true=facing_true, torso_front_share=round(tf / max(tf + tb, 1), 3),
-                   labels=sc['labels_by_threshold'], labels_wip=sc['labels_wound_if_present'],
+                   labels=sc['labels_by_threshold'], labels_wip=sc.get('labels_wound_if_present'),
                    visible_fraction=sc.get('visible_fraction'), clothed=bool(prm.get('garments', {}).get('top', 'none') != 'none'
                                                                             or prm.get('garments', {}).get('bottom', 'none') != 'none'))
         kxy = None

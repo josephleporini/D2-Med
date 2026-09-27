@@ -9,13 +9,13 @@ def h(p):
         for b in iter(lambda: f.read(1 << 20), b''): x.update(b)
     return x.hexdigest()
 mode, d, m = sys.argv[1:4]
-files = sorted(f for f in glob.glob(os.path.join(d, 'C*')) if os.path.isfile(f))
+files = sorted(f for f in glob.glob(os.path.join(d, os.environ.get('SCENE_PREFIX', 'C') + '*')) if os.path.isfile(f))
 if mode == 'write':
     with open(m, 'w') as fh:
         for f in files: fh.write(f'{h(f)}  {os.path.basename(f)}\n')
     if '--seeds' in sys.argv:
         rows = []
-        for f in sorted(glob.glob(os.path.join(d, 'C*_sidecar.json'))):
+        for f in sorted(glob.glob(os.path.join(d, os.environ.get('SCENE_PREFIX', 'C') + '*_sidecar.json'))):
             s = json.load(open(f)); p = s.get('params', {})
             rows.append({'scene_id': s['scene_id'], 'seed': p.get('seed'), 'generator': s.get('generator') or s.get('version')})
         json.dump(rows, open(m + '.seeds.json', 'w'), indent=0)
