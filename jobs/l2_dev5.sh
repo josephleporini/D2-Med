@@ -6,7 +6,12 @@
 set -u
 P=/workspace/probeB; R=${R:-$P/repo_git2}; DD=${DD:-$P/dddata_pod2}; D=$P/out/dev5
 export SCENE_PREFIX=D
-git -C $DD remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/josephleporini/DDData.git; git -C $DD pull -q --rebase origin main
+git -C $DD remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/josephleporini/DDData.git
+git -C $DD config user.email jslepo@gmail.com; git -C $DD config user.name "Joseph Leporini (pod)"
+# repair: the dev5 render pod's rebases stopped for lack of a committer identity; finish them and push the pending batches
+git -C $DD rebase --abort 2>/dev/null; rm -rf $DD/.git/rebase-merge $DD/.git/rebase-apply
+for t in 1 2 3; do git -C $DD pull -q --rebase origin main && git -C $DD push -q origin main && break; sleep 20; done
+echo "DDDATA_DEV5_BATCHES $(ls -d $DD/dev5/batch_* | wc -l) ahead=$(git -C $DD rev-list --count origin/main..HEAD)"
 mkdir -p $D $OUT/maps; cp $DD/dev5/batch_*/D* $D/
 N=$(ls $D/*_sidecar.json | wc -l); echo "SCENES dev5 $N"; [ $N -ge 470 ] || { echo "dev5 incomplete"; exit 4; }
 cp $R/jobs/checks_job7.py $P/gen/checks_job7_v5.py; cp $R/jobs/sidehead2.py $P/gen/sidehead2_v5.py; cd $P/gen
@@ -36,5 +41,5 @@ $SC --phase L2_dev5_adopted_gated --pred "$OUT/dev5_t*_sidec.jsonl" --side-truth
 set +f
 for a in orig adopted; do echo "==== METRICS $a"; cat $OUT/$a/metrics.json; echo; echo "==== RETRO $a"; head -80 $OUT/$a/retro.md; done
 cd $DD && mkdir -p results/l2_dev5 && cp -r $OUT/orig $OUT/adopted results/l2_dev5/ && cp $OUT/log_*.txt $P/manifests/dev5.sha256 results/l2_dev5/ \
- && git add -A results/l2_dev5 && git -c user.email=jslepo@gmail.com -c user.name="Joseph Leporini (pod)" commit -qm "L2 failure ledger on dev5 (generator vNext)" \
+ && git add -A results/l2_dev5 && git commit -qm "L2 failure ledger on dev5 (generator vNext)" \
  && for t in 1 2 3; do git pull -q --rebase origin main && git push -q origin main && break; sleep 20; done && echo PUBLISHED

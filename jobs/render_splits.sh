@@ -24,7 +24,7 @@ for name in ${SPLITS:-dev5 train5 test5 challenge5}; do
     mkdir -p $bd; for id in "${ids[@]:b*B:B}"; do cp $O/${id}* $bd/ 2>/dev/null; done
     (cd $bd && sha256sum $(ls | grep -v MANIFEST) > MANIFEST.sha256)
     (cd $DD && git add -A && git -c user.email=jslepo@gmail.com -c user.name="Joseph Leporini" commit -qm "$name batch $b (generator $GEN_COMMIT)" \
-      && for t in 1 2 3 4 5; do git pull -q --rebase origin main && timeout 300 git push -q origin main && break; sleep 30; done)
+      && for t in 1 2 3 4 5; do git -c user.email=jslepo@gmail.com -c user.name="Joseph Leporini" pull -q --rebase origin main && timeout 300 git push -q origin main && break; sleep 30; done)
     echo "BATCH_DONE $name $b $(date -u +%H:%M:%S)"
   done
   echo "SPLIT_DONE $name $(date -u +%H:%M:%S)"
