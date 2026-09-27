@@ -8,14 +8,15 @@ P=/workspace/probeB; R=${R:-$P/repo_git2}; D=$P/out/dev5
 export SCENE_PREFIX=D
 # repair: the dev5 render pod's pushes failed (rebase without committer identity). Rebuild the missing dev5 batches from the
 # rendered scenes on the volume into a fresh clone: the driver skips existing scenes, renders any missing ones, then pushes.
-DD=$P/dddata_l2; rm -rf $DD
+DD=$P/dddata_l2
 SPLITS=dev5 JOBS=8 MAX_HOURS=2 W=$P/render5_dev DD=$DD R=$R bash $R/jobs/render_gpu.sh 2>&1 | grep -E 'BATCH_DONE|SPLIT_DONE|COUNT|RENDER_RC|DONE D|rror|fatal' | tail -30
 git -C $DD config user.email jslepo@gmail.com; git -C $DD config user.name "Joseph Leporini (pod)"
 echo "DDDATA_DEV5_BATCHES $(ls -d $DD/dev5/batch_* | wc -l) ahead=$(git -C $DD rev-list --count origin/main..HEAD)"
 mkdir -p $D $OUT/maps; cp $DD/dev5/batch_*/D* $D/
 N=$(ls $D/*_sidecar.json | wc -l); echo "SCENES dev5 $N"; [ $N -ge 470 ] || { echo "dev5 incomplete"; exit 4; }
 cp $R/jobs/checks_job7.py $P/gen/checks_job7_v5.py; cp $R/jobs/sidehead2.py $P/gen/sidehead2_v5.py; cd $P/gen
-for k in 0 1 2; do
+NC=$(cat $OUT/chk_dev5_*.jsonl 2>/dev/null | wc -l); NE=$(cat $OUT/dev5_t*_sidec.jsonl 2>/dev/null | wc -l); echo "EXISTING chk $NC ext $NE"
+[ $NC -ge $N ] && [ $NE -ge $N ] || for k in 0 1 2; do
   CAP_THREADS=2 $PY checks_job7_v5.py $D dev5 $k 3 $OUT/chk_dev5_$k.jsonl > $OUT/log_c$k.txt 2>&1 &
   SIDE_MODE=distill CAP_THREADS=2 SAVE_MAPS=$OUT/maps $PY sidehead2_v5.py extract $P/models/seg3_side_distill.pt $D dev5 $k 3 $OUT/dev5_t$k > $OUT/log_t$k.txt 2>&1 &
 done
@@ -35,11 +36,11 @@ for f in sorted(glob.glob(os.environ['OUT'] + '/chk_dev5_*.jsonl')):
 print('ORIG_ROWS', n)
 PYEOF
 set -f
-SC="$PY $R/score/score.py --gen $R/gen --sidecars $D --truth $OUT/chk_dev5_*.jsonl --manifest $P/manifests/dev5.sha256 --images $D --maps $OUT/maps"
-$SC --phase L2_dev5_orig_seg_trueside --pred "$OUT/orig_dev5.jsonl" --out $OUT/orig
-$SC --phase L2_dev5_adopted_gated --pred "$OUT/dev5_t*_sidec.jsonl" --side-truth "$OUT/dev5_t*_ceil.jsonl" --prev $OUT/orig/ledger.jsonl --out $OUT/adopted
+SC="$PY $R/score/score.py --gen $R/gen --sidecars $D --truth $OUT/chk_dev5_*.jsonl --manifest $P/manifests/dev5.sha256 --images $D --maps $OUT/maps --dev dev5"
+$SC --phase L2_dev5_orig_seg_trueside --pred "$OUT/orig_dev5.jsonl" --out $OUT/orig 2>&1 | tee $OUT/score_orig.log
+$SC --phase L2_dev5_adopted_gated --pred "$OUT/dev5_t*_sidec.jsonl" --side-truth "$OUT/dev5_t*_ceil.jsonl" --prev $OUT/orig/ledger.jsonl --out $OUT/adopted 2>&1 | tee $OUT/score_adopted.log
 set +f
 for a in orig adopted; do echo "==== METRICS $a"; cat $OUT/$a/metrics.json; echo; echo "==== RETRO $a"; head -80 $OUT/$a/retro.md; done
-cd $DD && mkdir -p results/l2_dev5 && cp -r $OUT/orig $OUT/adopted results/l2_dev5/ && cp $OUT/log_*.txt $P/manifests/dev5.sha256 results/l2_dev5/ \
+cd $DD && mkdir -p results/l2_dev5 && cp -r $OUT/orig $OUT/adopted results/l2_dev5/ && cp $OUT/log_*.txt $OUT/score_*.log $P/manifests/dev5.sha256 results/l2_dev5/ \
  && git add -A results/l2_dev5 && git commit -qm "L2 failure ledger on dev5 (generator vNext)" \
  && for t in 1 2 3; do git pull -q --rebase origin main && git push -q origin main && break; sleep 20; done && echo PUBLISHED
