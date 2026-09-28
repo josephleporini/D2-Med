@@ -45,7 +45,11 @@ def main():
             S = scenes[sid]
             if set(S) != set(E.SITES):
                 n_err += 1; bad.append(f'{sid}: sites {sorted(S)}'); continue
-            probs = {s: S[s]['p'] for s in E.SITES}
+            probs = {s: list(S[s]['p']) for s in E.SITES}
+            for s in E.SITES:                                  # ledger rounds p to 3 decimals: break exact ties toward
+                p, k = probs[s], E.C4.index(S[s]['pred'])      # the ledger's own decision (made on unrounded values)
+                if sum(v == max(p) for v in p) > 1 and p[k] == max(p):
+                    p[k] += 1e-6
             tot = {s: sum(p) for s, p in probs.items()}          # ledger rounds to 3 decimals; renormalise
             probs = {s: [v / tot[s] for v in p] for s, p in probs.items()}
             fr = frames.get(sid, {})
