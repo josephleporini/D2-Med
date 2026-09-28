@@ -20,6 +20,7 @@ from PIL import Image, ImageFilter, ImageEnhance, ImageOps
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from d2qual.sites import SITES, CLASSES, LR_SWAP
+from d2qual import augment as AUG
 from d2qual.ingest import decode
 from d2qual.preprocess import letterbox, to_tensor
 
@@ -95,11 +96,9 @@ class SiteDataset(torch.utils.data.Dataset):
             rng = random.Random(self.rng.random() + i)
             im = photometric(im, rng)
             if self.rot and rng.random() < 0.5:
-                im = im.rotate(rng.uniform(-self.rot, self.rot), resample=Image.BILINEAR, expand=True)
-            if rng.random() < 0.5:
-                im = ImageOps.mirror(im)
-                y = [y[k] for k in LR_SWAP]           # mirrored anatomy: swap L/R labels
-                vis = [vis[k] for k in LR_SWAP]       # visibility swaps with the sites; head end and facing do not
+                im, y, vis = AUG.rotate(rng.uniform(-self.rot, self.rot))(im, y, (vis,))
+            if rng.random() < 0.5:                    # M3-03: label and visibility swap bound to the reflection
+                im, y, vis = AUG.MIRROR_H(im, y, (vis,))   # head end and facing do not swap
         x = to_tensor(letterbox(im, self.size), self.mean, self.std)
         aux_t = torch.tensor([a.get("head_end", -1), a.get("facing", -1)] + vis, dtype=torch.float32)
         return x, torch.tensor(y, dtype=torch.long), aux_t

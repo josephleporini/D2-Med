@@ -363,3 +363,80 @@ def test_M13_09_fallback_class_from_model_config(main_run):
     d = doc_of(main_run)
     corrupt = next(p for p in d["predictions"] if p["image_id"] == "corrupt.jpg")
     assert all(s["injury_type"] == fb for s in corrupt["sites"])
+
+
+# ----------------------------------------------------------------------------- v0.3.3 additions
+# (CR-2026-09-28-independent-run-review items 2 to 4: M1-07q, M1-08q, M2-07, M13-16, M13-17, M3-03 round trip)
+def _mini_input(work, name, files):
+    d = work / name; d.mkdir(exist_ok=True)
+    from PIL import Image as _I
+    for f in files:
+        p = os.path.join(os.fsencode(str(d)), f if isinstance(f, bytes) else os.fsencode(f))
+        _I.new("RGB", (64, 48), (120, 90, 60)).save(p.decode("utf-8", "surrogateescape"), format="JPEG")
+    return d
+
+
+def test_M1_07q_case_only_duplicates_both_emitted(work):
+    d = _mini_input(work, "case_dup", ["scan.jpg", "SCAN.JPG"])
+    out = work / "out_case"; out.mkdir()
+    r = run_exec(d, out, model_dir=work / "no_model_case")
+    ids = sorted(p["image_id"] for p in doc_of(r)["predictions"])
+    assert r["rc"] == 0 and ids == ["SCAN.JPG", "scan.jpg"]
+    assert any(l.get("msg") == "case_only_duplicate_names" for l in r["logs"])
+
+
+def test_M1_08q_non_utf8_filename_emitted_escaped(work):
+    d = _mini_input(work, "bad_name", [b"ok.jpg", b"bad\xff name.jpg"])
+    out = work / "out_badname"; out.mkdir()
+    r = run_exec(d, out, model_dir=work / "no_model_bad")
+    doc = doc_of(r)
+    assert r["rc"] == 0 and len(doc["predictions"]) == 2
+    assert "bad\\xff name.jpg" in [p["image_id"] for p in doc["predictions"]]
+    assert any(l.get("msg") == "non_utf8_filenames_escaped" for l in r["logs"])
+    assert not formatter.validate(doc, SCHEMA, None)
+
+
+def test_M2_07_socket_creation_disabled_in_process():
+    code = ("import socket, sys; sys.path.insert(0, %r); from d2qual.executive import _block_sockets; _block_sockets()\n"
+            "try:\n    socket.socket(); print('INET_ALLOWED')\nexcept OSError: print('INET_BLOCKED')\n"
+            "a, b = socket.socketpair(socket.AF_UNIX); print('UNIX_OK')") % str(ROOT)
+    p = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=120)
+    assert "INET_BLOCKED" in p.stdout and "UNIX_OK" in p.stdout, p.stdout + p.stderr
+
+
+def test_M13_16_sigterm_writes_results_and_exits_0(work, edge_dir, expected_ids):
+    import signal
+    out = work / "out_sigterm"; out.mkdir()
+    e = dict(os.environ, D2_INPUT=str(edge_dir), D2_OUTPUT=str(out), D2_MODEL_DIR=str(MODEL), D2_SCHEMA=str(SCHEMA),
+             D2_TEAM_NAME="verification", D2_TEAM_EMAIL="v@example.com", PYTHONPATH=str(ROOT))
+    p = subprocess.Popen([sys.executable, "-m", "d2qual"], env=e, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    for line in p.stderr:
+        if "initial_fallback_written" in line:
+            break
+    p.send_signal(signal.SIGTERM)
+    so, _ = p.communicate(timeout=120)
+    summary = json.loads(so.strip().splitlines()[-1])
+    doc = json.loads((out / "predictions.json").read_text(encoding="utf-8"))
+    assert p.returncode == 0 and summary["status"] == "signal"
+    assert not formatter.validate(doc, SCHEMA, expected_ids)
+
+
+def test_M13_17_unwritable_output_exits_1(work, edge_dir):
+    blocker = work / "not_a_dir"; blocker.write_text("file, not a directory")
+    r = run_exec(edge_dir, blocker / "out")
+    assert r["rc"] == 1 and any(l.get("msg") == "output_unwritable" for l in r["logs"])
+
+
+def test_M3_03_reflection_rule_round_trip():
+    from PIL import Image as _I
+    from d2qual import augment as A
+    im = _I.new("RGB", (6, 4)); im.putpixel((0, 0), (255, 0, 0)); im.putpixel((5, 3), (0, 255, 0)); im.putpixel((5, 0), (0, 0, 255))
+    y = [0, 1, 2, 3]; vis = [0.1, 0.2, 0.3, 0.4]
+    for op in A.OPS:
+        im1, y1, v1 = op(im, y, (vis,))
+        im2, y2, v2 = op(im1, y1, (v1,))
+        assert np.asarray(im2).tolist() == np.asarray(im).tolist() and y2 == y and v2 == vis, op.name   # every op here is an involution
+        assert (y1 == [y[k] for k in LR_SWAP]) == op.swaps, op.name
+    assert A.MIRROR_H.swaps and A.MIRROR_V.swaps and not A.ROT180.swaps and not A.rotate(17).swaps
+    h, yh = A.MIRROR_H(im, y)[:2]; hv, yhv = A.MIRROR_V(h, yh)[:2]; r, yr = A.ROT180(im, y)[:2]
+    assert np.asarray(hv).tolist() == np.asarray(r).tolist() and yhv == yr == y      # two reflections = 180° rotation, no swap

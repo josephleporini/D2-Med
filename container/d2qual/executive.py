@@ -16,7 +16,7 @@ import numpy as np
 
 from . import __version__
 from .config import RunConfig, load_model_config
-from .ingest import list_images, decode
+from .ingest import list_images, decode, case_duplicates, output_id
 from .privacy import check_model_config
 from .decision import decide
 from .sites import CLASSES
@@ -57,17 +57,45 @@ def _cap_gpu(device, cap_gb):
     return round(total, 1)
 
 
+def _block_sockets():
+    """M2-07: refuse to create internet sockets in this process (local AF_UNIX sockets stay allowed)"""
+    import socket
+    _orig = socket.socket
+
+    class _Guarded(_orig):
+        def __init__(self, family=-1, *a, **k):
+            fam = socket.AF_INET if family == -1 else family
+            if fam in (socket.AF_INET, getattr(socket, "AF_INET6", socket.AF_INET)):
+                raise OSError("network disabled in-process (M2-07)")
+            super().__init__(family, *a, **k)
+    socket.socket = _Guarded
+    socket.create_connection = lambda *a, **k: (_ for _ in ()).throw(OSError("network disabled in-process (M2-07)"))
+
+
 def main():
     t0 = time.time()
     cfg = RunConfig()
     os.environ.setdefault("HF_HUB_OFFLINE", "1")          # container has no network; never try
-    cfg.output_dir.mkdir(parents=True, exist_ok=True)
+    _block_sockets()                                       # M2-07: second guard behind --network none
+    try:                                                   # M13-17: probe the output directory before anything else
+        cfg.output_dir.mkdir(parents=True, exist_ok=True)
+        probe = cfg.output_dir / ".write_probe"
+        probe.write_text("x"); probe.unlink()
+    except Exception as ex:
+        log("output_unwritable", path=str(cfg.output_dir), error=f"{type(ex).__name__}: {ex}")
+        print(json.dumps({"status": "output_unwritable"}), flush=True)
+        return 1                                           # the only non-zero exit: no valid file can exist
     mcfg = load_model_config(cfg.model_dir)
     fallback_name = mcfg.get("fallback_class", "no_injury")
     fb = CLASSES.index(fallback_name)
 
     images, ignored = list_images(cfg.input_dir)
+    for group in case_duplicates(images):                  # M1-07q
+        log("case_only_duplicate_names", names=[output_id(n)[0] for n in group])
     ids = [p.name for p in images]
+    escaped = [output_id(n)[0] for n in ids if output_id(n)[1]]
+    if escaped:                                            # M1-08q
+        log("non_utf8_filenames_escaped", count=len(escaped), examples=escaped[:5])
     log("inputs", images=len(ids), ignored=len(ignored), ignored_examples=ignored[:5], version=__version__)
     st = State(ids, fb)
 
@@ -82,13 +110,26 @@ def main():
         return not errs
 
     flush("initial_fallback")
-    log("initial_fallback_written", elapsed_s=round(time.time() - t0, 3))   # M13-01
+
 
     def summary(status, **kw):
         s = {"status": status, "images": len(ids), "predicted": len(st.done),
              "fallback_images": len(st.fallback_used), "fallback_reasons": _count(st.fallback_used.values()),
              "elapsed_s": round(time.time() - t0, 2), **kw}
         print(json.dumps(s), flush=True)
+
+    def on_signal(signum, frame):                          # M13-16: SIGTERM/SIGINT -> merged results, exit 0
+        with st.lock:
+            for i in ids:
+                if i not in st.done:
+                    st.fallback_used.setdefault(i, "signal")
+        flush("signal")
+        summary("signal", signal=int(signum))
+        os._exit(0)
+    import signal as _signal
+    for _sig in (_signal.SIGTERM, _signal.SIGINT):
+        _signal.signal(_sig, on_signal)
+    log("initial_fallback_written", elapsed_s=round(time.time() - t0, 3))   # M13-01 (after the signal handler is in place)
 
     def watchdog():
         deadline = t0 + cfg.budget_s

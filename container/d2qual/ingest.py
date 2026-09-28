@@ -16,6 +16,24 @@ Image.MAX_IMAGE_PIXELS = 250_000_000     # allow large photos, still refuse absu
 ImageFile.LOAD_TRUNCATED_IMAGES = False  # a truncated file is a decode failure, not a guess
 
 
+def case_duplicates(images):
+    """M1-07q: names that differ only in case; all are kept, the caller logs a warning"""
+    seen = {}
+    for p in images:
+        seen.setdefault(p.name.lower(), []).append(p.name)
+    return [v for v in seen.values() if len(v) > 1]
+
+
+def output_id(name: str):
+    """M1-08q: the image_id written to the output. A name that is not valid UTF-8 (surrogate-escaped by Python) is
+    escaped as backslash sequences so the JSON can be written; returns (id, escaped?)"""
+    try:
+        name.encode("utf-8")
+        return name, False
+    except UnicodeEncodeError:
+        return name.encode("utf-8", "surrogateescape").decode("utf-8", "backslashreplace"), True
+
+
 def list_images(input_dir: Path):
     images, ignored = [], []
     for p in sorted(input_dir.iterdir(), key=lambda q: q.name):

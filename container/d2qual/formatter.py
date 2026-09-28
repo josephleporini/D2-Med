@@ -2,6 +2,7 @@
 import json, os
 from pathlib import Path
 from .sites import SITES, CLASSES
+from .ingest import output_id
 
 try:
     from jsonschema import Draft202012Validator
@@ -14,7 +15,7 @@ def build(image_ids, class_idx, team, email, version):
     preds = []
     for iid in image_ids:
         ci = class_idx[iid]
-        preds.append({"image_id": iid, "sites": [
+        preds.append({"image_id": output_id(iid)[0], "sites": [
             {"body_region": r, "laterality": l, "injury_type": CLASSES[int(ci[k])]} for k, (r, l) in enumerate(SITES)]})
     return {"schema_version": "1.0", "submission": {"team_name": team, "version": version, "email": email}, "predictions": preds}
 
@@ -31,6 +32,8 @@ def validate(doc, schema_path: Path | None, expected_ids=None):
         got = sorted((s["body_region"], s["laterality"]) for s in p["sites"])
         if got != sorted(SITES):
             errs.append(f"{p['image_id']}: wrong site set")
+    if expected_ids is not None:
+        expected_ids = [output_id(i)[0] for i in expected_ids]
     if expected_ids is not None and set(ids) != set(expected_ids):
         errs.append(f"image set mismatch: {len(set(expected_ids) - set(ids))} missing, {len(set(ids) - set(expected_ids))} extra")
     # ICD 3.2: no NaN / Infinity; json.dumps(allow_nan=False) in write() enforces it
