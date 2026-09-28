@@ -9,10 +9,13 @@
 set -u
 P=/workspace/probeB; R=${REPO:?}; export PYTHONPATH=$R/gen:$R/jobs SCENE_PREFIX=D
 STEPS=${STEPS:-3600}; BATCH=${BATCH:-6}; SH=${SHARDS:-6}; MAX_H=${MAX_H:-5}
-MODEL=$P/models/seg4_limb_bt1.pt; ADOPT=$P/models/seg3_side_distill.pt
+TAG=${TAG:-bt1}; export SEED=${SEED:-0}   # TAG=bt1_seed1 SEED=1: second seed, published to results/$TAG, adopted-model and T3 arms skipped
+MODEL=$P/models/seg4_limb_$TAG.pt
+ADOPT=$P/models/seg3_side_distill.pt
 T0=$(date +%s); stage() { echo "=== STAGE $1 $(date -u +%T) elapsed $(( $(date +%s) - T0 ))s"; }
 ( sleep $((MAX_H * 3600)); echo "BT1_WALLCLOCK_LIMIT ${MAX_H}h reached: stopping"; pkill -P $$; kill $$ ) & WD=$!
 fail() { echo "BT1_FAIL $*"; kill $WD 2>/dev/null; exit 5; }
+[ $TAG = bt1 ] || [ ! -f $MODEL ] || fail "$MODEL exists; refusing to overwrite"
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader || fail "no GPU"
 GPUTEST="import torch, torch.nn.functional as F; x = torch.randn(64, 64, device='cuda'); (x @ x).sum().item(); F.conv2d(torch.randn(1, 3, 32, 32, device='cuda'), torch.randn(4, 3, 3, 3, device='cuda')).sum().item()"
 if ! $PY -c "$GPUTEST" 2>/dev/null; then
@@ -94,12 +97,12 @@ ext() {  # ext <tag> <ckpt> <flip 0|1> <limb 0|1>
     FLIP=$3 LIMB=$4 SIDE_MODE=distill CAP_THREADS=2 $PY $R/jobs/sidehead2.py extract $2 $D5 dev5 $k $SH $OUT/$1_t$k > $OUT/log_$1_$k.txt 2>&1 &
   done
 }
-ext bt1 $MODEL 0 1; ext bt1f $MODEL 1 1; ext adf $ADOPT 1 0
+ext bt1 $MODEL 0 1; ext bt1f $MODEL 1 1; [ $TAG = bt1 ] && ext adf $ADOPT 1 0
 [ $RERUN_BASE = 1 ] && ext ad $ADOPT 0 0
 ( while sleep 180; do echo PROG $(date -u +%T) $(for t in bt1 bt1f adf ad; do echo $t $(cat $OUT/${t}_t*_sidec.jsonl 2>/dev/null | wc -l); done); done ) & PP=$!
 for j in $(jobs -p); do [ $j != $PP ] && [ $j != $WD ] && wait $j; done; kill $PP 2>/dev/null
 grep -h -E 'Traceback|Error' $OUT/log_*.txt | grep -v onnxruntime | head -6
-for t in bt1 bt1f adf; do n=$(cat $OUT/${t}_t*_sidec.jsonl | wc -l); echo "EXT $t $n"; [ $n -ge 470 ] || fail "extraction $t incomplete"; done
+for t in bt1 bt1f $([ $TAG = bt1 ] && echo adf); do n=$(cat $OUT/${t}_t*_sidec.jsonl | wc -l); echo "EXT $t $n"; [ $n -ge 470 ] || fail "extraction $t incomplete"; done
 AD="$L2/dev5_t*_sidec.jsonl"; ADC="$L2/dev5_t*_ceil.jsonl"; [ $RERUN_BASE = 1 ] && { AD="$OUT/ad_t*_sidec.jsonl"; ADC="$OUT/ad_t*_ceil.jsonl"; }
 
 stage C
@@ -108,21 +111,21 @@ SC="$PY $R/score/score.py --gen $R/gen --sidecars $D5 --truth $L2/chk_dev5_*.jso
 $SC --phase BT1_dev5_base --pred "$OUT/bt1_t*_sidec.jsonl" --side-truth "$OUT/bt1_t*_ceil.jsonl" --prev $DD/results/l2_dev5/adopted/ledger.jsonl --out $OUT/base 2>&1 | tail -1
 $SC --phase BT1_dev5_limb --limb --pred "$OUT/bt1_t*_sidec.jsonl" --side-truth "$OUT/bt1_t*_ceil.jsonl" --prev $DD/results/l2_dev5/adopted/ledger.jsonl --out $OUT/limb 2>&1 | tail -1
 [ $RERUN_BASE = 1 ] && $SC --phase BT1_dev5_adopted_repo --pred "$AD" --side-truth "$ADC" --out $OUT/adopted_repo 2>&1 | tail -1
-for rule in v3_compat guide_primary guide_wound_present guide_amp_any; do       # T3: same predictions, truth under each rule
+[ $TAG = bt1 ] && for rule in v3_compat guide_primary guide_wound_present guide_amp_any; do       # T3: same predictions, truth under each rule
   $SC --phase T3_adopted_$rule --label-rule $rule --pred "$AD" --side-truth "$ADC" --out $OUT/t3/adopted_$rule 2>&1 | tail -1
   $SC --phase T3_bt1limb_$rule --label-rule $rule --limb --pred "$OUT/bt1_t*_sidec.jsonl" --side-truth "$OUT/bt1_t*_ceil.jsonl" --out $OUT/t3/bt1limb_$rule 2>&1 | tail -1
 done
 LIMB=0 $PY $R/jobs/tta_score.py $R/gen "$OUT/bt1_t*_sidec.jsonl" "$OUT/bt1f_t*_sidec.jsonl" "$OUT/bt1_t*_ceil.jsonl" $OUT/flip_bt1_base.json | tail -1
 LIMB=1 $PY $R/jobs/tta_score.py $R/gen "$OUT/bt1_t*_sidec.jsonl" "$OUT/bt1f_t*_sidec.jsonl" "$OUT/bt1_t*_ceil.jsonl" $OUT/flip_bt1_limb.json | tail -1
-LIMB=0 $PY $R/jobs/tta_score.py $R/gen "$AD" "$OUT/adf_t*_sidec.jsonl" "$ADC" $OUT/flip_adopted.json | tail -1
+[ $TAG = bt1 ] && LIMB=0 $PY $R/jobs/tta_score.py $R/gen "$AD" "$OUT/adf_t*_sidec.jsonl" "$ADC" $OUT/flip_adopted.json | tail -1
 set +f
 
 stage P
-mkdir -p $DD/results/bt1 && cd $DD/results/bt1 && cp -r $OUT/base $OUT/limb $OUT/t3 . && cp $OUT/flip_*.json $OUT/smoke.txt $OUT/burst.txt \
+mkdir -p $DD/results/$TAG && cd $DD/results/$TAG && cp -r $OUT/base $OUT/limb . && { [ -d $OUT/t3 ] && cp -r $OUT/t3 . ; true; } && cp $OUT/flip_*.json $OUT/smoke.txt $OUT/burst.txt \
   $OUT/repro/result.txt $OUT/model.md5 $OUT/dev5.sha256 . && grep -E 'BT1_|"step": [0-9]*00,' $OUT/train.log > train_log.txt
 [ -d $OUT/adopted_repo ] && cp -r $OUT/adopted_repo .
 mkdir -p ext && cp $OUT/bt1_t*_sidec.jsonl ext/ 2>/dev/null; du -sh .      # extraction rows: events are built from these offline
-cd $DD && git add -A results/bt1 && git commit -qm "BT-1: limb head and side retrain on train5, dev5 ledgers, T3 rules, M3-02 flip measure (commit $(cat $R/COMMIT))" \
+cd $DD && git add --sparse -A results/$TAG && git commit -qm "BT-1 ($TAG, seed $SEED): limb head and side retrain on train5, dev5 ledgers, T3 rules, M3-02 flip measure (commit $(cat $R/COMMIT))" \
   && for t in 1 2 3; do git pull -q --rebase origin main && git push -q origin main && break; sleep 20; done && echo PUBLISHED
 kill $WD 2>/dev/null
 echo "BT1_DONE elapsed $(( $(date +%s) - T0 ))s"
