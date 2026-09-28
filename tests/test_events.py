@@ -63,7 +63,7 @@ def test_not_testable_site_has_no_injury_event():
     probs = {s: onehot(0) for s in E.SITES}; probs['LUE'] = onehot(3)
     log = E.image_log('x.jpg', probs, model_version='t')
     lue = [e for e in log['events'] if e.get('body_site') == {'region': 'upper_extremity', 'laterality': 'left'}]
-    assert [e['type'] for e in lue] == ['site_visibility'] and lue[0]['value'] == {'visible': False}
+    assert [e['type'] for e in lue] == ['site_visibility'] and lue[0]['value'] == {'visible': False} and lue[0]['assertion'] == 'present'
 
 
 def test_ids_legal_and_distinct():
@@ -97,7 +97,7 @@ def test_supersede_and_retract_respected():
     log = E.image_log('x.jpg', {s: onehot(0) for s in E.SITES}, model_version='t')
     # a later correction: LUE not visible after all
     old = next(e for e in log['events'] if e['event_id'] == 'vis-lue')
-    new = copy.deepcopy(old); new.update(event_id='vis-lue-2', supersedes='vis-lue', assertion='absent', value={'visible': False})
+    new = copy.deepcopy(old); new.update(event_id='vis-lue-2', supersedes='vis-lue', assertion='present', value={'visible': False})
     log['events'].append(new)
     # a retraction of the RLE injury event leaves RLE visible -> still no_injury (rule 4)
     inj = next(e for e in log['events'] if e['event_id'] == 'inj-rle')
