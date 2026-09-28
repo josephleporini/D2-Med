@@ -16,9 +16,9 @@ T0=$(date +%s); stage() { echo "=== STAGE $1 $(date -u +%T) elapsed $(( $(date +
 ( sleep $(python3 -c "print(int($MAX_H*3600))"); echo "BT3_WALLCLOCK_LIMIT reached"; pkill -P $$; kill $$ ) & WD=$!
 fail() {  # publish the log tail before exiting, so a self-terminated pod still leaves a diagnosis
   echo "BT3_FAIL $*"; kill $WD 2>/dev/null
-  if [ -d "${DD:-}/.git" ]; then mkdir -p $DD/results/bt3_a40 && tail -200 /workspace/probeB/logs/bt3_container.log > $DD/results/bt3_a40/FAILED_log.txt
+  if [ -d "${DD:-}/.git" ]; then mkdir -p $DD/results/bt3_a40 && tail -200 /workspace/probeB/logs/bt3_container.log > $DD/results/bt3_a40/FAILED_log.txt; cp $OUT/parity_full.txt $DD/results/bt3_a40/ 2>/dev/null
     ls -la $P/models > $DD/results/bt3_a40/FAILED_models_ls.txt 2>&1
-    (cd $DD && git add -A results/bt3_a40 && git commit -qm "BT-3 early: failure log ($*)" && git pull -q --rebase origin main && git push -q origin main && echo FAIL_LOG_PUBLISHED); fi
+    (cd $DD && git add --sparse -A results/bt3_a40 && git commit -qm "BT-3 early: failure log ($*)" && git pull -q --rebase origin main && git push -q origin main && echo FAIL_LOG_PUBLISHED); fi
   exit 5; }
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader || fail "no GPU"
 NP=$(nproc); CPUS=0-$(( NP < 8 ? NP - 1 : 7 )); echo "HOST nproc $NP mem $(free -g | awk '/Mem/{print $2}')G cpus $CPUS"
@@ -29,7 +29,7 @@ command -v /usr/bin/time >/dev/null || (apt-get install -y -qq time >/dev/null 2
 DD=$P/dddata_bt3; rm -rf $DD
 git clone -q --filter=blob:none --sparse https://x-access-token:${GH_TOKEN}@github.com/josephleporini/DDData.git $DD || fail clone
 git -C $DD config user.email jslepo@gmail.com; git -C $DD config user.name "Joseph Leporini (pod)"
-git -C $DD sparse-checkout set dev5 results/bt1 || fail sparse
+git -C $DD sparse-checkout set dev5 results/bt1 results/bt3_a40 || fail sparse
 D5=$OUT/dev5; IN=$OUT/in; mkdir -p $D5 $IN; cp $DD/dev5/batch_*/D*.jpg $DD/dev5/batch_*/D*_sidecar.json $D5/; cp $D5/*.jpg $IN/
 echo "DEV5 images $(ls $IN | wc -l)"; ls $P/models | head -40
 
@@ -48,8 +48,9 @@ du -shL $MD | tee $OUT/model_size.txt
 
 stage R
 taskset -c $CPUS $PY $R/tools/bt3_check.py parity $MD $MD/seg4_limb_bt1.pt $MD/decision_layer_bt1.json $D5 \
-  "$DD/results/bt1/ext/bt1_t*_sidec.jsonl" 24 $OUT/parity.json 2>&1 | grep -E 'PARITY|Traceback|Error' | tee $OUT/parity.txt
-grep -q 'PARITY_' $OUT/parity.txt || fail "parity run"
+  "$DD/results/bt1/ext/bt1_t*_sidec.jsonl" 24 $OUT/parity.json > $OUT/parity_full.txt 2>&1
+grep -E 'PARITY' $OUT/parity_full.txt | tee $OUT/parity.txt
+grep -q 'PARITY_' $OUT/parity.txt || { grep -v Warning $OUT/parity_full.txt | tail -40; fail "parity run"; }
 grep -q PARITY_OK $OUT/parity.txt || echo "PARITY_DIFF: continuing for timing; accuracy figures below come from the container's own rows"
 
 # gpu memory sampler (whole device, includes anything outside torch)
@@ -86,7 +87,7 @@ cp $OUT/parity.json $OUT/score.json $OUT/conformance.txt $OUT/model.md5 $OUT/mod
 for f in $OUT/stderr_*.txt; do grep -v '"msg": "aux"' $f | tail -60 > $PUB/$(basename $f); done
 cp $OUT/run_full/predictions.json $PUB/predictions_dev5.json; gzip -c $OUT/rows_full.jsonl > $PUB/rows_full.jsonl.gz
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader > $PUB/gpu.txt; echo "nproc $(nproc)" >> $PUB/gpu.txt
-cd $DD && git add -A results/bt3_a40 && git commit -qm "BT-3 early: BT-1 engine in the qualification container code on $(head -1 $PUB/gpu.txt | cut -d, -f1) (commit $(cat $R/COMMIT))" \
+cd $DD && git add --sparse -A results/bt3_a40 && git commit -qm "BT-3 early: BT-1 engine in the qualification container code on $(head -1 $PUB/gpu.txt | cut -d, -f1) (commit $(cat $R/COMMIT))" \
   && for t in 1 2 3; do git pull -q --rebase origin main && git push -q origin main && break; sleep 20; done && echo PUBLISHED
 kill $WD 2>/dev/null
 echo "BT3_DONE elapsed $(( $(date +%s) - T0 ))s"
