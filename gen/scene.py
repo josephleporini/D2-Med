@@ -182,6 +182,10 @@ def place_camera(cam, P, prm, rng):
             sgn = -sgn
         tgt[ax] = c[ax] + sgn * (hi[ax] - lo[ax]) * 0.28
         dist_mult = 0.6
+    elif framing == 'limb_closeup':
+        # one limb fills most of the frame (real close-up photos); the rest of the body is mostly out of frame
+        tgt = np.array(prm['_limb_xyz'][prm['closeup_site']], dtype=float)
+        dist_mult = float(prm.get('closeup_dist', 0.35))
     elif framing == 'off_center':
         perp = 1 - ax
         tgt[ax] = c[ax] + rng.choice([-1, 1]) * (hi[ax] - lo[ax]) * 0.42

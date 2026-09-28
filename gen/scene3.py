@@ -68,6 +68,12 @@ def setup3(prm, rng):
     P = np.array([tuple(ev.matrix_world @ v.co) for v in ev.data.vertices])
     head = arm.matrix_world @ arm.pose.bones['head'].head
     prm['_head_xy'] = [head.x, head.y]
+    lx = {}                                                 # limb centres for the limb_closeup framing (camera only)
+    for site, (b1, b2) in {'LUE': ('lowerarm01.L', 'wrist.L'), 'RUE': ('lowerarm01.R', 'wrist.R'),
+                           'LLE': ('lowerleg01.L', 'foot.L'), 'RLE': ('lowerleg01.R', 'foot.R')}.items():
+        a1 = arm.matrix_world @ arm.pose.bones[b1].head; a2 = arm.matrix_world @ arm.pose.bones[b2].head
+        lx[site] = [float((a1.x + a2.x) / 2), float((a1.y + a2.y) / 2), float((a1.z + a2.z) / 2)]
+    prm['_limb_xyz'] = lx
     fl = S.FLOORS[prm['floor']]
     bpy.ops.mesh.primitive_plane_add(size=30, location=(0, 0, -0.004)); floor = bpy.context.object
     floor.data.materials.append(S.noise_material('floor', *fl))
@@ -212,6 +218,7 @@ def main_full(prm_path, out_dir):
                 lab[s] = lab2[s] = 'no_injury'
         labels[f'{t:.2f}'] = lab; labels_wpresent[f'{t:.2f}'] = lab2
     prm.pop('_head_xy', None)
+    prm.pop('_limb_xyz', None)
     side = {'scene_id': sid, 'params': prm, 'visible_px': vis, 'alone_px': alone,
             'visible_fraction': {s: round(frac[s], 4) for s in mk.SITES}, 'wound_visible_px': wound_px,
             'wounds': ctx['wounds'], 'labels_by_threshold': labels, 'labels_wound_if_present': labels_wpresent,

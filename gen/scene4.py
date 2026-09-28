@@ -198,6 +198,7 @@ def main_full(prm_path, out_dir):
                       ('wound' if wound_px[s] >= S3.WOUND_MIN_PX else 'no_injury') if s in ctx['wounds'] else 'no_injury')
         labels[f'{th:.2f}'] = lab
     prm.pop('_head_xy', None)
+    prm.pop('_limb_xyz', None)
     truth = {s: {'visible_px': vis[s], 'full_px': alone[s], 'full_in_frame_px': amodal_in[s],
                  'full_out_of_frame_px': alone[s] - amodal_in[s], 'visible_fraction': round(frac[s], 4),
                  'wound_present': s in ctx['wounds'], 'wound_visible_px': wound_px[s], 'wound_native_px': wound_native[s],
