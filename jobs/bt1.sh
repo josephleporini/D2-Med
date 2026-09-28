@@ -14,7 +14,11 @@ MODEL=$P/models/seg4_limb_$TAG.pt
 ADOPT=$P/models/seg3_side_distill.pt
 T0=$(date +%s); stage() { echo "=== STAGE $1 $(date -u +%T) elapsed $(( $(date +%s) - T0 ))s"; }
 ( sleep $((MAX_H * 3600)); echo "BT1_WALLCLOCK_LIMIT ${MAX_H}h reached: stopping"; pkill -P $$; kill $$ ) & WD=$!
-fail() { echo "BT1_FAIL $*"; kill $WD 2>/dev/null; exit 5; }
+fail() {  # publish the log tail before exiting so a self-terminated pod leaves a diagnosis
+  echo "BT1_FAIL $*"; kill $WD 2>/dev/null
+  if [ -d "${DD:-}/.git" ]; then mkdir -p $DD/results/${TAG:-bt1}_failed && tail -150 /workspace/probeB/logs/${JOBNAME:-bt1}.log > $DD/results/${TAG:-bt1}_failed/FAILED_log.txt
+    (cd $DD && git add --sparse -A results/${TAG:-bt1}_failed && git commit -qm "BT-1 ${TAG:-bt1}: failure log ($*)" && git pull -q --rebase origin main && git push -q origin main && echo FAIL_LOG_PUBLISHED); fi
+  exit 5; }
 [ $TAG = bt1 ] || [ ! -f $MODEL ] || fail "$MODEL exists; refusing to overwrite"
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader || fail "no GPU"
 GPUTEST="import torch, torch.nn.functional as F; x = torch.randn(64, 64, device='cuda'); (x @ x).sum().item(); F.conv2d(torch.randn(1, 3, 32, 32, device='cuda'), torch.randn(4, 3, 3, 3, device='cuda')).sum().item()"
