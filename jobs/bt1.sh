@@ -14,6 +14,16 @@ T0=$(date +%s); stage() { echo "=== STAGE $1 $(date -u +%T) elapsed $(( $(date +
 ( sleep $((MAX_H * 3600)); echo "BT1_WALLCLOCK_LIMIT ${MAX_H}h reached: stopping"; pkill -P $$; kill $$ ) & WD=$!
 fail() { echo "BT1_FAIL $*"; kill $WD 2>/dev/null; exit 5; }
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader || fail "no GPU"
+GPUTEST="import torch, torch.nn.functional as F; x = torch.randn(64, 64, device='cuda'); (x @ x).sum().item(); F.conv2d(torch.randn(1, 3, 32, 32, device='cuda'), torch.randn(4, 3, 3, 3, device='cuda')).sum().item()"
+if ! $PY -c "$GPUTEST" 2>/dev/null; then
+  # the volume venv's torch has no kernels for this GPU (e.g. Blackwell sm_120): use the image's own torch, add the rest
+  echo "VENV_TORCH_UNUSABLE $($PY -c 'import torch; print(torch.__version__, torch.cuda.get_arch_list())' 2>&1 | tail -1); switching to system python"
+  python3 -m pip install -q rtmlib onnxruntime scikit-learn scipy opencv-python-headless hydra-core iopath omegaconf jsonschema 2>&1 | tail -2
+  SAM2_BUILD_CUDA=0 python3 -m pip install -q --no-deps git+https://github.com/facebookresearch/sam2.git 2>&1 | tail -2
+  PY=python3; export PY
+  $PY -c "$GPUTEST" || fail "no usable torch for this GPU"
+  $PY -c "import sam2, rtmlib, sklearn, cv2, onnxruntime; print('SYSTEM_ENV_OK')" || fail "system env"
+fi
 $PY -c "import torch; print('torch', torch.__version__, 'cuda', torch.version.cuda, torch.cuda.get_device_name(0))" || fail "torch"
 
 # data: sparse clone of DDData (train5, dev5, results only; test5 and challenge5 are not checked out)
