@@ -14,7 +14,12 @@ set -u
 P=/workspace/probeB; R=${REPO:?}; MAX_H=${MAX_H:-1.5}; export CAP_THREADS=8
 T0=$(date +%s); stage() { echo "=== STAGE $1 $(date -u +%T) elapsed $(( $(date +%s) - T0 ))s"; }
 ( sleep $(python3 -c "print(int($MAX_H*3600))"); echo "BT3_WALLCLOCK_LIMIT reached"; pkill -P $$; kill $$ ) & WD=$!
-fail() { echo "BT3_FAIL $*"; kill $WD 2>/dev/null; exit 5; }
+fail() {  # publish the log tail before exiting, so a self-terminated pod still leaves a diagnosis
+  echo "BT3_FAIL $*"; kill $WD 2>/dev/null
+  if [ -d "${DD:-}/.git" ]; then mkdir -p $DD/results/bt3_a40 && tail -200 /workspace/probeB/logs/bt3_container.log > $DD/results/bt3_a40/FAILED_log.txt
+    ls -la $P/models > $DD/results/bt3_a40/FAILED_models_ls.txt 2>&1
+    (cd $DD && git add -A results/bt3_a40 && git commit -qm "BT-3 early: failure log ($*)" && git pull -q --rebase origin main && git push -q origin main && echo FAIL_LOG_PUBLISHED); fi
+  exit 5; }
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader || fail "no GPU"
 NP=$(nproc); CPUS=0-$(( NP < 8 ? NP - 1 : 7 )); echo "HOST nproc $NP mem $(free -g | awk '/Mem/{print $2}')G cpus $CPUS"
 $PY -c "import torch; x=torch.randn(64,64,device='cuda'); print('torch', torch.__version__, torch.cuda.get_device_name(0), float((x@x).sum())>-1e9)" || fail "torch"
@@ -26,7 +31,7 @@ git clone -q --filter=blob:none --sparse https://x-access-token:${GH_TOKEN}@gith
 git -C $DD config user.email jslepo@gmail.com; git -C $DD config user.name "Joseph Leporini (pod)"
 git -C $DD sparse-checkout set dev5 results/bt1 || fail sparse
 D5=$OUT/dev5; IN=$OUT/in; mkdir -p $D5 $IN; cp $DD/dev5/batch_*/D*.jpg $DD/dev5/batch_*/D*_sidecar.json $D5/; cp $D5/*.jpg $IN/
-echo "DEV5 images $(ls $IN | wc -l)"
+echo "DEV5 images $(ls $IN | wc -l)"; ls $P/models | head -40
 
 MD=$OUT/model; mkdir -p $MD
 for f in lend3d.pt lwound2.pt sam2_1_hiera_tiny.pt seg4_limb_bt1.pt end2end.onnx 20230928; do
