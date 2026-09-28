@@ -50,9 +50,10 @@ def _cap_gpu(device, cap_gb):
     import torch
     if device.type != "cuda":
         return None
-    total = torch.cuda.get_device_properties(device).total_memory / 2**30
+    idx = device.index if device.index is not None else torch.cuda.current_device()   # 'cuda' without an index is rejected
+    total = torch.cuda.get_device_properties(idx).total_memory / 2**30
     frac = min(1.0, cap_gb / total)
-    torch.cuda.set_per_process_memory_fraction(frac, device)
+    torch.cuda.set_per_process_memory_fraction(frac, idx)
     return round(total, 1)
 
 
