@@ -12,10 +12,14 @@ import numpy as np
 REGISTRY = {}
 
 
-def _register():
-    from .direct import DirectEngine
-    from .structured import StructuredEngine
-    REGISTRY.update({"direct": DirectEngine, "structured": StructuredEngine})
+def _register(needed=()):
+    """import only the engines the model config names: the structured engine must not need timm, nor the direct one sam2"""
+    if "direct" in needed:
+        from .direct import DirectEngine
+        REGISTRY["direct"] = DirectEngine
+    if "structured" in needed:
+        from .structured import StructuredEngine
+        REGISTRY["structured"] = StructuredEngine
 
 
 class Ensemble:
@@ -39,8 +43,8 @@ class Ensemble:
 
 
 def build(model_dir, cfg, device, tta_flip=True):
-    _register()
     specs = cfg.get("engines") or [{"type": cfg.get("engine", "direct"), "weight": 1.0, "dir": "."}]
+    _register({s["type"] for s in specs})
     members = []
     for s in specs:
         sub = model_dir / s.get("dir", ".")

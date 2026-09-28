@@ -21,7 +21,7 @@ from .privacy import check_model_config
 from .decision import decide
 from .sites import CLASSES
 from . import formatter
-from .engines.direct import FACING, HEAD_END
+from .sites import FACING, HEAD_END
 
 
 def log(msg, **kw):

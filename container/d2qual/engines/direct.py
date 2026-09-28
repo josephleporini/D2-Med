@@ -2,10 +2,8 @@ import numpy as np
 import torch
 from ..model import build_from_config
 from ..preprocess import letterbox, to_tensor
-from ..sites import LR_SWAP
+from ..sites import LR_SWAP, FACING, HEAD_END
 
-FACING = ["front", "back", "edge_on"]
-HEAD_END = ["up", "down"]
 
 
 class DirectEngine:

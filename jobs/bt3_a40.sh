@@ -16,7 +16,7 @@ T0=$(date +%s); stage() { echo "=== STAGE $1 $(date -u +%T) elapsed $(( $(date +
 ( sleep $(python3 -c "print(int($MAX_H*3600))"); echo "BT3_WALLCLOCK_LIMIT reached"; pkill -P $$; kill $$ ) & WD=$!
 fail() {  # publish the log tail before exiting, so a self-terminated pod still leaves a diagnosis
   echo "BT3_FAIL $*"; kill $WD 2>/dev/null
-  if [ -d "${DD:-}/.git" ]; then mkdir -p $DD/results/bt3_a40 && tail -200 /workspace/probeB/logs/bt3_container.log > $DD/results/bt3_a40/FAILED_log.txt; cp $OUT/parity_full.txt $DD/results/bt3_a40/ 2>/dev/null
+  if [ -d "${DD:-}/.git" ]; then mkdir -p $DD/results/bt3_a40 && tail -200 /workspace/probeB/logs/bt3_container.log > $DD/results/bt3_a40/FAILED_log.txt; cp $OUT/parity_full.txt $DD/results/bt3_a40/ 2>/dev/null; for f in $OUT/stderr_*.txt; do grep -v '"msg": "aux"' $f | tail -80 > $DD/results/bt3_a40/FAILED_$(basename $f); done 2>/dev/null
     ls -la $P/models > $DD/results/bt3_a40/FAILED_models_ls.txt 2>&1
     (cd $DD && git add --sparse -A results/bt3_a40 && git commit -qm "BT-3 early: failure log ($*)" && git pull -q --rebase origin main && git push -q origin main && echo FAIL_LOG_PUBLISHED); fi
   exit 5; }
