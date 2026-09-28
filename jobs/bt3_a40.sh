@@ -18,7 +18,7 @@ fail() { echo "BT3_FAIL $*"; kill $WD 2>/dev/null; exit 5; }
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader || fail "no GPU"
 NP=$(nproc); CPUS=0-$(( NP < 8 ? NP - 1 : 7 )); echo "HOST nproc $NP mem $(free -g | awk '/Mem/{print $2}')G cpus $CPUS"
 $PY -c "import torch; x=torch.randn(64,64,device='cuda'); print('torch', torch.__version__, torch.cuda.get_device_name(0), float((x@x).sum())>-1e9)" || fail "torch"
-$PY -m pip install -q jsonschema 2>&1 | tail -1; $PY -c "import jsonschema, sam2, rtmlib, onnxruntime as o; print('ORT', o.__version__, o.get_available_providers())" || fail "env"
+export PATH=$HOME/.local/bin:$PATH; command -v uv >/dev/null || pip install -q uv; $PY -c "import jsonschema" 2>/dev/null || uv pip install -q --python $PY jsonschema 2>&1 | tail -1; $PY -c "import jsonschema, sam2, rtmlib, onnxruntime as o; print('ORT', o.__version__, o.get_available_providers())" || fail "env"
 command -v /usr/bin/time >/dev/null || (apt-get install -y -qq time >/dev/null 2>&1 || true)
 
 DD=$P/dddata_bt3; rm -rf $DD
