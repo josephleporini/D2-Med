@@ -69,9 +69,8 @@ run full $IN D2_TTA_FLIP=1 D2_FEATURES_OUT=$OUT/rows_full.jsonl
 stage Y
 SUB=$OUT/in120; rm -rf $SUB; mkdir -p $SUB; ls $IN | awk 'NR % 4 == 1' | head -120 | while read f; do ln -s $IN/$f $SUB/$f; done
 run notta $SUB D2_TTA_FLIP=0
-if $PY -c "import onnxruntime as o; import sys; sys.exit(0 if 'CUDAExecutionProvider' in o.get_available_providers() else 1)"; then
-  run ortgpu $SUB D2_TTA_FLIP=1 ORT_GPU=1
-else echo "ORT_GPU skipped: onnxruntime in this venv has no CUDA provider"; fi
+run serial $SUB D2_TTA_FLIP=1 BT1_BATCH=0      # same 120 images, unbatched per-limb encoding (speed reference)
+run batch120 $SUB D2_TTA_FLIP=1
 kill $GS 2>/dev/null; echo "GPU_MEM_MAX_MIB $(sort -n $OUT/gpu_mem.txt | tail -1)"
 
 stage K
