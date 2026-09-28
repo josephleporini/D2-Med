@@ -141,10 +141,14 @@ def main():
     ap.add_argument('--alt-rules', default='0.00,0.25,0.50'); ap.add_argument('--dev', default='dev3'); ap.add_argument('--eval')
     ap.add_argument('--prev', default=''); ap.add_argument('--manifest'); ap.add_argument('--maps'); ap.add_argument('--images')
     ap.add_argument('--sheet', type=int, default=20)
+    ap.add_argument('--limb', action='store_true', help='append BT-1 limb-head features (predicted, from the --pred rows)')
+    ap.add_argument('--label-rule', default='', help='relabel truth with score/labels.py RULE (vNext sidecars); stored under --rule')
     A = ap.parse_args()
     sys.path.insert(0, A.gen)
     import eval_v3 as EV
     FN = feat_names(EV); assert len(FN) == 19
+    if A.limb:
+        FN = FN + list(EV.LIMB_FEATURES)
     os.makedirs(A.out, exist_ok=True)
 
     pred = load_jsonl(A.pred); side_t = load_jsonl(A.side_truth) if A.side_truth else {}; truth = load_jsonl(A.truth) if A.truth else {}
@@ -166,6 +170,12 @@ def main():
             sys.exit(f'MANIFEST MISMATCH {len(bad)} scenes, e.g. {bad[:3]}')
         man = {'file': A.manifest, 'sha256': sha256(A.manifest), 'entries': len(lock)}
 
+    if A.label_rule:                                 # T3: truth under another label rule, same predictions
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import labels as LB
+        for sid, r in pred.items():
+            if sid in cars and 'truth' in cars[sid]:
+                r['labels'] = dict(r['labels']); r['labels'][A.rule] = LB.label(cars[sid], A.label_rule)
     # site table
     rows = []
     for sid, r in sorted(pred.items()):
@@ -184,6 +194,8 @@ def main():
     if A.eval and not any(r['split'] == A.eval for r in rows):
         sys.exit(f'ERROR: zero rows for --eval {A.eval}; splits in --pred: {splits}')
     def X(key, idx):
+        if A.limb:      # limb features are always the model's own (from the predicted row), also in counterfactuals
+            return np.array([EV.feat(rows[i][key]) + EV.limb_feat(rows[i]['raw']) for i in idx], float)
         return np.array([EV.feat(rows[i][key]) for i in idx], float)
     y = np.array([C4.index(r['labels'][A.rule]) for r in rows]); g = np.array([r['scene'] for r in rows])
     dev = np.array([r['split'] == A.dev for r in rows]); ev = ~dev
@@ -220,7 +232,7 @@ def main():
         delta = {k: {'pred': raw.get(k), 'true': None if rt is None else rt.get(k)} for k in RAW_KEYS}
         feat_d = None
         if rt is not None:
-            z = (np.array(EV.feat(raw)) - np.array(EV.feat(rt))) / sd
+            z = (np.array(EV.feat(raw)) - np.array(EV.feat(rt))) / sd[:len(EV.feat(raw))]
             feat_d = [{'feature': FN[k], 'z': round(float(z[k]), 2)} for k in np.argsort(-np.abs(z))[:3]]
         truth_ctx = {'visible_fraction': (sc.get('visible_fraction') or {}).get(r['site']),
                      'wound_visible_px': (sc.get('wound_visible_px') or {}).get(r['site']),
@@ -276,7 +288,7 @@ def main():
                        'truth': truth_ctx, 'review': {'cause_override': None, 'note': None}})
 
     # metrics
-    out = {'schema': SCHEMA, 'phase': A.phase, 'date_utc': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+    out = {'schema': SCHEMA, 'phase': A.phase, 'limb': bool(A.limb), 'label_rule': A.label_rule or None, 'date_utc': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
            'rule': A.rule, 'C': C, 'manifest': man, 'commit': repo_commit()
            if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'COMMIT')) else None,
            'coverage': {'side_truth': round(float(has_side.mean()), 3), 'true_map': round(float(has_true.mean()), 3),

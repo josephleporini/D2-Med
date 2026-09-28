@@ -11,7 +11,7 @@
 #   - on exit: KEEP_ALIVE=1 keeps the pod up; otherwise it terminates itself (runpodctl remove pod) so billing ends
 set -uo pipefail
 JOB=$1; shift
-REPO=/workspace/probeB/repo
+REPO=${REPO:-/workspace/probeB/repo}; export REPO
 export OUT=/workspace/probeB/out/$JOB PYTHONUNBUFFERED=1
 mkdir -p "$OUT" /workspace/probeB/logs
 LOG=/workspace/probeB/logs/$JOB.log

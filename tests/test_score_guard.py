@@ -35,3 +35,11 @@ def test_stops_on_wrong_dev_split(fx, tmp_path):
 def test_stops_on_missing_eval_split(fx, tmp_path):
     r = score(fx, tmp_path / 'bad2', '--dev', 'dev3', '--eval', 'test5')
     assert r.returncode != 0 and 'zero rows for --eval test5' in r.stderr
+
+
+def test_limb_features_and_label_rule_run(fx, tmp_path):
+    r = score(fx, tmp_path / 'limb', '--dev', 'dev3', '--limb', '--label-rule', 'guide_primary')
+    assert r.returncode == 0, r.stderr[-800:]
+    import json
+    m = json.load(open(tmp_path / 'limb' / 'metrics.json'))
+    assert m['limb'] is True and m['label_rule'] == 'guide_primary' and m['dev3_oof']['n'] == 480

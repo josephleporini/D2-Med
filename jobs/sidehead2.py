@@ -194,7 +194,12 @@ def extract(ckpt, D, split, kk, nn_, prefix):
     torch.set_num_threads(N_THR)
     m = EV.load_models(None, os.path.join(M, 'lend3d.pt'), os.path.join(M, 'lwound2.pt'))   # ORT forced to CPU above
     dev = m['dev']; print('EXT_DEV', dev, flush=True)
-    net = SideModel(len(PT.SEG3_CLASSES), os.path.join(M, 'sam2_1_hiera_tiny.pt'))
+    LIMB = os.environ.get('LIMB') == '1'          # BT-1 limb model (bt1_limb.LimbModel): adds per-site limb features
+    if LIMB:
+        import bt1_limb as BL
+        net = BL.LimbModel(len(PT.SEG3_CLASSES), os.path.join(M, 'sam2_1_hiera_tiny.pt'))
+    else:
+        net = SideModel(len(PT.SEG3_CLASSES), os.path.join(M, 'sam2_1_hiera_tiny.pt'))
     net.load_state_dict(torch.load(ckpt, map_location='cpu')); net.to(dev).eval()
     files = sorted(glob.glob(os.path.join(D, os.environ.get('SCENE_PREFIX', 'C') + '*_sidecar.json')))[kk::nn_]
     fo = {v: open(f'{prefix}_{v}.jsonl', 'w') for v in ('kp', 'side', 'sidec', 'ceil')}
@@ -223,7 +228,7 @@ def extract(ckpt, D, split, kk, nn_, prefix):
         crop, (X1, Y1, S) = square_crop(img, box, 0.15)
         x = (torch.from_numpy(cv2.resize(crop, (1024, 1024))).permute(2, 0, 1).float() / 255 - MEAN) / STD
         with torch.no_grad():
-            ps, pd = net(x[None].to(dev))
+            outs = net(x[None].to(dev)); ps, pd = outs[0], outs[1]
             s2 = max(int(round(S / 2)), 1)
             lab = F.interpolate(ps.float(), size=(s2, s2), mode='bilinear', align_corners=False)[0].argmax(0).cpu().numpy()
             pl = F.interpolate(pd.float(), size=(s2, s2), mode='bilinear', align_corners=False)[0].softmax(0)[0].cpu().numpy()
@@ -253,6 +258,10 @@ def extract(ckpt, D, split, kk, nn_, prefix):
             np.savez_compressed(os.path.join(os.environ['SAVE_MAPS'], sid + '.npz'), seg=seg3, pl=np.clip(pleft * 255, 0, 255).astype(np.uint8), kp=kk_)
         for v, (cm_, e_, s_) in (('kp', (cm1, e1, s1)), ('side', (cmS, eS, sS)), ('sidec', (cmC, eC, sC)), ('ceil', (cmG, eG, sG))):
             rows = site_rows(m, img, cm_, names, e_, s_, wm, tq)
+            if LIMB:
+                lf = BL.limb_site_features(outs[2][0], outs[3][0], (X1, Y1, S), {k_: r_['vis_px'] for k_, r_ in rows.items()})
+                for k_ in rows:
+                    rows[k_]['limb'] = lf[k_]
             if FLIP:
                 rows = {SWAP[k]: v_ for k, v_ in rows.items()}
             fo[v].write(json.dumps(dict(base, flip=bool(FLIP), sites=rows)) + '\n'); fo[v].flush()

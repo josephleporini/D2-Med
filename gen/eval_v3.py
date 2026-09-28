@@ -161,6 +161,16 @@ def feat(r):
             r['wound_px'] / max(r['vis_px'], 1), np.log1p(r['tq_px'])]
 
 
+LIMB_FEATURES = ['log_amodal_px', 'vis_over_amodal', 'term_peak', 'p_cause_intact_visible', 'p_cause_occluded',
+                 'p_cause_out_of_frame', 'p_cause_amputated_visible', 'p_cause_amputated_hidden']
+
+
+def limb_feat(r):
+    """BT-1 per-limb head features (bt1_limb.limb_site_features); same order as LIMB_FEATURES"""
+    l = r['limb']
+    return [np.log1p(l['amodal_px']), l['vis_over_amodal'], l['term_peak'], *l['p_cause']]
+
+
 def rule(r):
     """hand rule for comparison: not visible -> not_testable; stump likely -> amputation; wound likely -> wound."""
     if r['vis_px'] < 30 or r['p_end'] is None:

@@ -9,6 +9,9 @@ def raw(cls, noise):
     pw = None if cls == 3 else ([0.2, 0.8] if cls == 1 else [0.9, 0.1])
     r = dict(vis_px=vis, Lfrac=0.5, bg_frac=0.3, end={'BG': 3, 'OCC': 1}, ext_px=vis // 3, stump_px=stump, torso_ext=100.0,
              p_end=pe, p_wound=pw, wound_px=wound, tq_px=0)
+    am = vis / 0.8 if cls != 2 else vis / 0.6
+    r['limb'] = dict(amodal_px=int(am), vis_over_amodal=round(vis / am, 3) if am else 0.0, term_peak=0.2 if cls == 3 else 0.8,
+                     p_cause=[0.1, 0.1, 0.1, 0.6, 0.1] if cls == 2 else [0.1, 0.7, 0.1, 0.05, 0.05] if cls == 3 else [0.7, 0.1, 0.1, 0.05, 0.05])
     return r
 def corrupt(r, kind):
     r = json.loads(json.dumps(r))
