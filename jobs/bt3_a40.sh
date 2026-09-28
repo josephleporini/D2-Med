@@ -8,7 +8,7 @@
 #   Y  timing variants on 120 images: mirror off; ORT on GPU if onnxruntime-gpu is usable
 #   K  conformance suite, native mode (edge cases, no-model fallback, watchdog, determinism)
 #   C  scoring: container classes (in-sample layer) and out-of-fold from the container's own rows
-#   P  publish to DDData results/bt3_a40
+#   P  publish to DDData results/${RESTAG:-bt3_a40}
 # dev5 is a development split (scored many times already); no test split is touched. Env: GH_TOKEN, MAX_H (default 1.5)
 set -u
 P=/workspace/probeB; R=${REPO:?}; MAX_H=${MAX_H:-1.5}; export CAP_THREADS=8
@@ -16,9 +16,9 @@ T0=$(date +%s); stage() { echo "=== STAGE $1 $(date -u +%T) elapsed $(( $(date +
 ( sleep $(python3 -c "print(int($MAX_H*3600))"); echo "BT3_WALLCLOCK_LIMIT reached"; pkill -P $$; kill $$ ) & WD=$!
 fail() {  # publish the log tail before exiting, so a self-terminated pod still leaves a diagnosis
   echo "BT3_FAIL $*"; kill $WD 2>/dev/null
-  if [ -d "${DD:-}/.git" ]; then mkdir -p $DD/results/bt3_a40 && tail -200 /workspace/probeB/logs/bt3_container.log > $DD/results/bt3_a40/FAILED_log.txt; cp $OUT/parity_full.txt $DD/results/bt3_a40/ 2>/dev/null; for f in $OUT/stderr_*.txt; do grep -v '"msg": "aux"' $f | tail -80 > $DD/results/bt3_a40/FAILED_$(basename $f); done 2>/dev/null
-    ls -la $P/models > $DD/results/bt3_a40/FAILED_models_ls.txt 2>&1
-    (cd $DD && git add --sparse -A results/bt3_a40 && git commit -qm "BT-3 early: failure log ($*)" && git pull -q --rebase origin main && git push -q origin main && echo FAIL_LOG_PUBLISHED); fi
+  if [ -d "${DD:-}/.git" ]; then mkdir -p $DD/results/${RESTAG:-bt3_a40} && tail -200 /workspace/probeB/logs/bt3_container.log > $DD/results/${RESTAG:-bt3_a40}/FAILED_log.txt; cp $OUT/parity_full.txt $DD/results/${RESTAG:-bt3_a40}/ 2>/dev/null; for f in $OUT/stderr_*.txt; do grep -v '"msg": "aux"' $f | tail -80 > $DD/results/${RESTAG:-bt3_a40}/FAILED_$(basename $f); done 2>/dev/null
+    ls -la $P/models > $DD/results/${RESTAG:-bt3_a40}/FAILED_models_ls.txt 2>&1
+    (cd $DD && git add --sparse -A results/${RESTAG:-bt3_a40} && git commit -qm "BT-3 early: failure log ($*)" && git pull -q --rebase origin main && git push -q origin main && echo FAIL_LOG_PUBLISHED); fi
   exit 5; }
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader || fail "no GPU"
 NP=$(nproc); CPUS=0-$(( NP < 8 ? NP - 1 : 7 )); echo "HOST nproc $NP mem $(free -g | awk '/Mem/{print $2}')G cpus $CPUS"
@@ -29,7 +29,7 @@ command -v /usr/bin/time >/dev/null || (apt-get install -y -qq time >/dev/null 2
 DD=$P/dddata_bt3; rm -rf $DD
 git clone -q --filter=blob:none --sparse https://x-access-token:${GH_TOKEN}@github.com/josephleporini/DDData.git $DD || fail clone
 git -C $DD config user.email jslepo@gmail.com; git -C $DD config user.name "Joseph Leporini (pod)"
-git -C $DD sparse-checkout set dev5 results/bt1 results/bt3_a40 || fail sparse
+git -C $DD sparse-checkout set dev5 results/bt1 results/${RESTAG:-bt3_a40} || fail sparse
 D5=$OUT/dev5; IN=$OUT/in; mkdir -p $D5 $IN; cp $DD/dev5/batch_*/D*.jpg $DD/dev5/batch_*/D*_sidecar.json $D5/; cp $D5/*.jpg $IN/
 echo "DEV5 images $(ls $IN | wc -l)"; ls $P/models | head -40
 
@@ -67,7 +67,7 @@ stage X
 run full $IN D2_TTA_FLIP=1 D2_FEATURES_OUT=$OUT/rows_full.jsonl
 [ -s $OUT/run_full/predictions.json ] || fail "no predictions.json"
 stage Y
-SUB=$OUT/in120; mkdir -p $SUB; ls $IN | awk 'NR % 4 == 1' | head -120 | while read f; do ln -s $IN/$f $SUB/$f; done
+SUB=$OUT/in120; rm -rf $SUB; mkdir -p $SUB; ls $IN | awk 'NR % 4 == 1' | head -120 | while read f; do ln -s $IN/$f $SUB/$f; done
 run notta $SUB D2_TTA_FLIP=0
 if $PY -c "import onnxruntime as o; import sys; sys.exit(0 if 'CUDAExecutionProvider' in o.get_available_providers() else 1)"; then
   run ortgpu $SUB D2_TTA_FLIP=1 ORT_GPU=1
@@ -82,12 +82,12 @@ stage C
 $PY $R/tools/bt3_check.py score $OUT/run_full/predictions.json $OUT/rows_full.jsonl $D5 $MD/decision_layer_bt1.json $OUT/score.json | cut -c1-1500
 
 stage P
-PUB=$DD/results/bt3_a40; mkdir -p $PUB
+PUB=$DD/results/${RESTAG:-bt3_a40}; mkdir -p $PUB
 cp $OUT/parity.json $OUT/score.json $OUT/conformance.txt $OUT/model.md5 $OUT/model_size.txt $OUT/gpu_mem.txt $OUT/stdout_*.txt $PUB/
 for f in $OUT/stderr_*.txt; do grep -v '"msg": "aux"' $f | tail -60 > $PUB/$(basename $f); done
 cp $OUT/run_full/predictions.json $PUB/predictions_dev5.json; gzip -c $OUT/rows_full.jsonl > $PUB/rows_full.jsonl.gz
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader > $PUB/gpu.txt; echo "nproc $(nproc)" >> $PUB/gpu.txt
-cd $DD && git add --sparse -A results/bt3_a40 && git commit -qm "BT-3 early: BT-1 engine in the qualification container code on $(head -1 $PUB/gpu.txt | cut -d, -f1) (commit $(cat $R/COMMIT))" \
+cd $DD && git add --sparse -A results/${RESTAG:-bt3_a40} && git commit -qm "BT-3 (${RESTAG:-bt3_a40}): BT-1 engine in the qualification container code on $(head -1 $PUB/gpu.txt | cut -d, -f1) (commit $(cat $R/COMMIT))" \
   && for t in 1 2 3; do git pull -q --rebase origin main && git push -q origin main && break; sleep 20; done && echo PUBLISHED
 kill $WD 2>/dev/null
 echo "BT3_DONE elapsed $(( $(date +%s) - T0 ))s"

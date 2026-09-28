@@ -44,6 +44,51 @@ def features(row):
     return EV.feat(row) + EV.limb_feat(row)
 
 
+def site_rows_batched(m, img, cm, names, ext, stc, wm, tq, chunk=8):
+    """side_kp.site_rows with the SAM 2.1 crop encodings done in one batch (BT-3 speed). Same crops, same EndNet heads;
+    only the encoder call is batched (set_image_batch), so outputs match the serial path up to float rounding."""
+    import torch, test_a_masks as TA, test_e as TE, lend as LE
+    from scipy import ndimage
+    from side_kp import limb_window
+    ix = {n: i for i, n in enumerate(names)}
+    an = TA.analyse(cm, names); torso = cm == ix['TORSO']; s0 = LE.window_size(torso); te = max(TA.extent(torso), 1)
+    jobs, crops = [], []
+    for site in TE.SITES:
+        pm = cm == ix[site]
+        if an[site]['vis_px'] >= 30:
+            x, y = LE.limb_end(pm, torso); cx, cy, sw = limb_window(pm)
+            jobs.append((site, pm, x, y, cx, cy, sw))
+            crops += [cv2_resize(LE.crop_1280(img, x, y, s0)), cv2_resize(LE.crop_1280(img, cx, cy, sw))]
+    emb = []
+    for k in range(0, len(crops), chunk):
+        m['P'].set_image_batch(crops[k:k + chunk])
+        e = m['P']._features['image_embed']
+        emb += list(torch.nn.functional.avg_pool2d(e.float(), 2).detach().cpu().numpy().astype(np.float16))
+    pe, pw = {}, {}
+    for j, (site, pm, x, y, cx, cy, sw) in enumerate(jobs):
+        fe = torch.from_numpy(emb[2 * j]).float()[None]; fw = torch.from_numpy(emb[2 * j + 1]).float()[None]
+        xin = torch.cat([fe, torch.from_numpy(LE.mask_window(pm, x, y, s0))[None, None]], 1).to(m['dev'])
+        xw = torch.cat([fw, torch.from_numpy(LE.mask_window(pm, cx, cy, sw))[None, None]], 1).to(m['dev'])
+        with torch.no_grad():
+            pe[site] = torch.softmax(m['end'](xin), 1)[0].cpu().numpy().tolist()
+            pw[site] = torch.softmax(m['lw'](xw), 1)[0].cpu().numpy().tolist()
+    rows = {}
+    for site in TE.SITES:
+        r = an[site]; pm = cm == ix[site]; grown = ndimage.binary_dilation(pm, iterations=2)
+        rows[site] = dict(vis_px=int(r['vis_px']), Lfrac=r['Lfrac'], bg_frac=r['bg_frac'], end=r.get('end') or {},
+                          ext_px=int(ext[site]), stump_px=int(stc[site]), torso_ext=float(te), p_end=pe.get(site), p_wound=pw.get(site),
+                          wound_px=int((wm & grown).sum()), tq_px=int((tq & grown).sum()))
+    return rows
+
+
+def cv2_resize(crop):
+    import cv2
+    return cv2.resize(crop, (1024, 1024))
+
+
+BATCH = os.environ.get('BT1_BATCH', '1') == '1'     # batched SAM encoding of the per-limb crops (BT-3 speed)
+
+
 class BT1Engine:
     name = 'bt1'
 
@@ -124,7 +169,7 @@ class BT1Engine:
         conf = np.where(np.maximum(pleft, 1 - pleft) >= 0.75, 0.0, 99.0).astype(np.float32)
         cmC, eC, sC = assign_gt_side(cm1, names, seg, e1, s1, pside, conf)
         t['assign'] = time.time() - t2; t3 = time.time()
-        rows = site_rows(self.m, img, cmC, names, eC, sC, wm, tq)
+        rows = (site_rows_batched if BATCH else site_rows)(self.m, img, cmC, names, eC, sC, wm, tq)
         lf = BL.limb_site_features(outs[2][0], outs[3][0], (X1, Y1, S), {k_: r_['vis_px'] for k_, r_ in rows.items()})
         for k_ in rows:
             rows[k_]['limb'] = lf[k_]
