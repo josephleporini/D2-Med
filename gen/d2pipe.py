@@ -13,7 +13,6 @@ import os, sys, json, time
 import numpy as np, cv2, torch
 sys.path.insert(0, os.path.dirname(__file__))
 import parts as PT, test_a_masks as TA, test_e as TE, test_e2 as T2, lend as LE
-import events as EV4
 from seg_train2 import Decoder2
 from seg_features import square_crop
 
@@ -117,6 +116,7 @@ class Pipeline:
             q = np.exp(logits - logits.max()); q = q / q.sum()                 # decision-layer posterior
             p4 = [0.0] * 4
             for c, v in zip(self.dl_classes, q):
+                import events as EV4          # lazy: d2voice is needed only for event output
                 p4[EV4.C4.index(c)] += float(v)
             probs[site] = p4
         self.last = {'probs': probs, 'facing': facing, 'facing_conf': facing_conf}
@@ -128,6 +128,7 @@ FALLBACK = 'no_injury'          # majority class (M13-09); moves to model_config
 
 def run_folder(pipe, in_dir, team='TBD-team', version='0.1.0', email='jl@josephleporini.com', events_out=None,
                model_version='probeB-d2pipe'):
+    import events as EV4                 # lazy: d2voice is needed only for event output
     """predictions.json is generated from the casualty events (D-01: M12 reads events). events_out, if given, receives
     one schema v0.2.0 event log per image as JSON lines. It must not be the qualification output directory, which
     holds only predictions.json (M2-02); the qualification run keeps events in memory."""
