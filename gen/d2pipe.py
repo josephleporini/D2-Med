@@ -13,12 +13,22 @@ import os, sys, json, time
 import numpy as np, cv2, torch
 sys.path.insert(0, os.path.dirname(__file__))
 import parts as PT, test_a_masks as TA, test_e as TE, test_e2 as T2, lend as LE
+import events as EV4
 from seg_train2 import Decoder2
 from seg_features import square_crop
 
 SITE_ICD = {'LUE': ('upper_extremity', 'left'), 'RUE': ('upper_extremity', 'right'),
             'LLE': ('lower_extremity', 'left'), 'RLE': ('lower_extremity', 'right')}
 RING = ['BG', 'OCC', 'TORSO', 'OTHER_LIMB', 'EDGE']
+
+
+def frame_facing(seg, sfr):
+    """Predicted facing from the part map (front vs back torso pixels), with the winning share as confidence.
+    'unknown' when the frame could not be formed. Edge-on is not yet detected (M3-13 gap)."""
+    if sfr is None:
+        return None, None
+    tot = np.isin(seg, T2.TORSO_C).sum(); fr = np.isin(seg, T2.FRONT_C).sum() / max(tot, 1)
+    return ('front' if fr > 0.5 else 'back'), round(float(max(fr, 1 - fr)), 3)
 
 
 def letterbox(img, W=1280, H=960):
@@ -79,6 +89,8 @@ class Pipeline:
         else:
             axis = np.array([0.0, -1.0])
         sfr = T2.seg_frame(seg)
+        facing, facing_conf = frame_facing(seg, sfr)
+        probs = {}
         if sfr is None and not len(k):
             left = np.array([1.0, 0.0])
         else:
@@ -102,21 +114,43 @@ class Pipeline:
             z = (np.array(f) - self.dl['mean']) / self.dl['scale']
             logits = self.dl['coef'] @ z + self.dl['intercept']
             out[site] = self.dl_classes[int(np.argmax(logits))]
+            q = np.exp(logits - logits.max()); q = q / q.sum()                 # decision-layer posterior
+            p4 = [0.0] * 4
+            for c, v in zip(self.dl_classes, q):
+                p4[EV4.C4.index(c)] += float(v)
+            probs[site] = p4
+        self.last = {'probs': probs, 'facing': facing, 'facing_conf': facing_conf}
         return out
 
 
-def run_folder(pipe, in_dir, team='TBD-team', version='0.1.0', email='jl@josephleporini.com'):
+FALLBACK = 'no_injury'          # majority class (M13-09); moves to model_config.json with the container build
+
+
+def run_folder(pipe, in_dir, team='TBD-team', version='0.1.0', email='jl@josephleporini.com', events_out=None,
+               model_version='probeB-d2pipe'):
+    """predictions.json is generated from the casualty events (D-01: M12 reads events). events_out, if given, receives
+    one schema v0.2.0 event log per image as JSON lines. It must not be the qualification output directory, which
+    holds only predictions.json (M2-02); the qualification run keeps events in memory."""
     preds = []
+    fe = open(events_out, 'w') if events_out else None
     for fn in sorted(os.listdir(in_dir)):
         if not fn.lower().endswith(('.jpg', '.jpeg', '.png')):
             continue
         img = cv2.imread(os.path.join(in_dir, fn))
+        fb = [0.0] * 4; fb[EV4.C4.index(FALLBACK)] = 1.0
+        probs, facing, fconf, mv = {s: fb for s in TE.SITES}, None, None, model_version + ':fallback'
         try:
-            res = pipe.predict(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) if img is not None else {}
+            if img is not None:
+                pipe.predict(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+                probs, facing, fconf, mv = pipe.last['probs'], pipe.last['facing'], pipe.last['facing_conf'], model_version
         except Exception as ex:                      # never drop an image: fall back to the majority class
-            print('WARN', fn, repr(ex), flush=True); res = {}
-        preds.append({'image_id': fn, 'sites': [{'body_region': SITE_ICD[s][0], 'laterality': SITE_ICD[s][1],
-                                                 'injury_type': res.get(s, 'no_injury')} for s in TE.SITES]})
+            print('WARN', fn, repr(ex), flush=True)
+        log = EV4.image_log(fn, probs, model_version=mv, facing=facing, facing_conf=fconf)
+        preds.append(EV4.qual_record(fn, log))
+        if fe:
+            fe.write(json.dumps(log, separators=(',', ':')) + '\n')
+    if fe:
+        fe.close()
     return {'schema_version': '1.0', 'submission': {'team_name': team, 'version': version, 'email': email},
             'predictions': preds}
 
@@ -125,6 +159,6 @@ if __name__ == '__main__':
     in_dir, out_path = sys.argv[1], sys.argv[2]
     model_dir = sys.argv[3] if len(sys.argv) > 3 else os.path.join(os.path.dirname(__file__), '..', 'models')
     t0 = time.time(); pipe = Pipeline(model_dir)
-    res = run_folder(pipe, in_dir)
+    res = run_folder(pipe, in_dir, events_out=os.environ.get('EVENTS_OUT'))
     json.dump(res, open(out_path, 'w'), indent=1)
     print('PRED', len(res['predictions']), 'images', round(time.time() - t0, 1), 's')

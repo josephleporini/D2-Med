@@ -7,7 +7,9 @@ Layout
 - `infra/`  `setup_env.sh` (idempotent pod setup, `--lock` writes an environment lock), `runjob.sh` (standard job wrapper), `pack.sh`
 - `manifests/` locked split manifests (sha256 per scene file)
 - `docs/`   ledger schema and retrospective procedure
-- `tests/`  synthetic fixture for the scorer
+- `gen/events.py` casualty-event writer (schema v0.2.0) and events-to-qualification mapper; `d2pipe.run_folder` builds `predictions.json` from events
+- `tools/ledger_to_events.py` events from a scorer ledger, validated with the shared D2_Dev validator, with a round-trip check
+- `tests/`  synthetic fixture for the scorer; `pytest tests` (event and scorer-guard tests need the D2_Dev clone next to this one, or `D2_VALIDATOR=<path to d2-voice>`)
 
 On the volume the repo lives at `/workspace/probeB/repo` with a `COMMIT` file; every job records that commit.
 

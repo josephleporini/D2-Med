@@ -187,7 +187,7 @@ def extract(ckpt, D, split, kk, nn_, prefix):
             kw['sess_options'] = so; kw['providers'] = ['CPUExecutionProvider']; super().__init__(*a, **kw)
     ort.InferenceSession = _C
     import eval_v3 as EV, test_a_masks as TA, test_e as TE, test_e2 as T2, lend as LE
-    from d2pipe import letterbox
+    from d2pipe import letterbox, frame_facing
     from side_kp import geodesic_fast, to_classmap_kp, site_rows
     from checks import side_lookup, assign_gt_side, pix_acc
     TA.geodesic = geodesic_fast
@@ -235,6 +235,7 @@ def extract(ckpt, D, split, kk, nn_, prefix):
             pleft[ys0:ys1, xs0:xs1] = pl[ys0 - oy:ys1 - oy, xs0 - ox:xs1 - ox]
         seg, wm, tq = EV.fold_extras(seg3)
         sfr = T2.seg_frame(seg)
+        fac, fconf = frame_facing(seg, sfr)          # predicted facing, persisted for events (M3-13)
         left = np.array([1.0, 0.0]) if (sfr is None and not len(k)) else (sfr[2] if sfr else 1) * pp
         cm1, names, e1, s1, _ = to_classmap_kp(seg, left, axis, None if kxy is None else kxy.tolist())
         pside = np.where(pleft >= 0.5, 1, 2).astype(np.uint8); zero = np.zeros((480, 640), np.float32)
@@ -242,7 +243,9 @@ def extract(ckpt, D, split, kk, nn_, prefix):
         conf = np.where(np.maximum(pleft, 1 - pleft) >= 0.75, 0.0, 99.0).astype(np.float32)
         cmC, eC, sC = assign_gt_side(cm1, names, seg, e1, s1, pside, conf)
         cmG, eG, sG = assign_gt_side(cm1, names, seg, e1, s1, near, dist)
-        base = dict(scene=sid, split=split, visible_fraction=sc.get('visible_fraction'), labels=sc['labels_by_threshold'], kp=kpd)
+        # visible_fraction is generator truth copied from the sidecar (scorer context only); never an engine output
+        base = dict(scene=sid, split=split, visible_fraction=sc.get('visible_fraction'), labels=sc['labels_by_threshold'], kp=kpd,
+                    frame=dict(facing=fac or 'unknown', facing_conf=fconf))
         if os.environ.get('SAVE_MAPS'):
             kk_ = np.zeros((23, 3), np.float32)
             if kpd:

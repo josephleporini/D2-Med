@@ -175,6 +175,14 @@ def main():
             rows.append(dict(scene=sid, site=s, split=r['split'], raw=r['sites'][s], labels={k: v[s] for k, v in r['labels'].items()},
                              kp=r.get('kp'), raw_side=side_t.get(sid, {}).get('sites', {}).get(s),
                              raw_true=truth.get(sid, {}).get('gt_sites_ceil', {}).get(s), facing=truth.get(sid, {}).get('facing_true')))
+    # guard: a split filter that matches nothing must stop the run, not score an empty or partial table (IPR §8.2)
+    splits = sorted({r['split'] for r in pred.values()})
+    if not rows:
+        sys.exit(f'ERROR: zero rows in scope: --dev {A.dev} --eval {A.eval}; splits in --pred: {splits}')
+    if not any(r['split'] == A.dev for r in rows):
+        sys.exit(f'ERROR: zero rows for --dev {A.dev}; splits in --pred: {splits}')
+    if A.eval and not any(r['split'] == A.eval for r in rows):
+        sys.exit(f'ERROR: zero rows for --eval {A.eval}; splits in --pred: {splits}')
     def X(key, idx):
         return np.array([EV.feat(rows[i][key]) for i in idx], float)
     y = np.array([C4.index(r['labels'][A.rule]) for r in rows]); g = np.array([r['scene'] for r in rows])
