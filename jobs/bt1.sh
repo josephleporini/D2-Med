@@ -20,6 +20,7 @@ fail() {  # publish the log tail before exiting so a self-terminated pod leaves 
     (cd $DD && git add --sparse -A results/${TAG:-bt1}_failed && git commit -qm "BT-1 ${TAG:-bt1}: failure log ($*)" && git pull -q --rebase origin main && git push -q origin main && echo FAIL_LOG_PUBLISHED); fi
   exit 5; }
 [ $TAG = bt1 ] || [ ! -f $MODEL ] || fail "$MODEL exists; refusing to overwrite"
+[ -e $R/models ] || ln -sfn $P/models $R/models     # jobs/*.py read ../models (the BT-1 run had this link on its clone)
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader || fail "no GPU"
 GPUTEST="import torch, torch.nn.functional as F; x = torch.randn(64, 64, device='cuda'); (x @ x).sum().item(); F.conv2d(torch.randn(1, 3, 32, 32, device='cuda'), torch.randn(4, 3, 3, 3, device='cuda')).sum().item()"
 if ! $PY -c "$GPUTEST" 2>/dev/null; then
