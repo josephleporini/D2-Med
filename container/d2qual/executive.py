@@ -35,6 +35,7 @@ class State:
         self.classes = {i: [fallback_idx] * 4 for i in ids}
         self.done = set()
         self.fallback_used = {}
+        self.probs = {}
         self.finished = False
 
 
@@ -132,6 +133,9 @@ def main():
         return 0
 
     bias = mcfg.get("decision_bias")
+    # Item 3 switch, default OFF: D2_PRIOR_EM=1 and a training class mix in model_config ("train_prior")
+    prior_em = mcfg.get("train_prior") if os.environ.get("D2_PRIOR_EM", "0") == "1" else None
+    log("prior_em_switch", on=bool(prior_em))
     t_inf = time.time()
     batches = [images[k:k + cfg.batch_size] for k in range(0, len(images), cfg.batch_size)]
     pool = ThreadPoolExecutor(max_workers=max(1, cfg.decode_workers))
@@ -176,6 +180,10 @@ def main():
                 if not np.all(np.isfinite(probs)):
                     raise FloatingPointError("non-finite probabilities")
                 cls = decide(probs, bias)
+                if prior_em:
+                    with st.lock:
+                        for (n, _), pr in zip(ok, probs):
+                            st.probs[n] = pr
                 with st.lock:
                     for (n, _), c in zip(ok, cls):
                         st.classes[n] = [int(v) for v in c]
@@ -194,6 +202,16 @@ def main():
             flush("checkpoint"); last_ckpt = time.time(); n_ckpt += 1
     pool.shutdown()
     st.finished = True
+    if prior_em and st.probs:                    # Item 3: re-decide every predicted image under the estimated test mix
+        from .prior import em_prior
+        ids_p = sorted(st.probs)
+        P = np.stack([st.probs[i] for i in ids_p])           # (n, 4 sites, 4 classes)
+        A, pi = em_prior(P.reshape(-1, 4), prior_em, iters=int(os.environ.get("D2_PRIOR_EM_ITERS", "20")))
+        cls = decide(A.reshape(P.shape), bias)
+        with st.lock:
+            for i, c in zip(ids_p, cls):
+                st.classes[i] = [int(v) for v in c]
+        log("prior_em", train_prior=[round(float(v), 3) for v in prior_em], test_prior=[round(float(v), 3) for v in pi])
     valid = flush("final")
     n_ok = len(st.done)
     per_img = (time.time() - t_inf) / max(1, n_ok)
