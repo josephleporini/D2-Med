@@ -1,0 +1,8 @@
+# Inference image. torch cu130 wheels bundle the CUDA 13.0 runtime libraries (ICD: include
+# runtime, no kernel driver; host driver >= 580 supports CUDA 13.0). Pin exact versions.
+torch==2.14.0
+torchvision==0.29.0
+timm==1.0.9
+pillow>=10.4
+numpy>=1.26
+jsonschema>=4.18

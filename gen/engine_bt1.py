@@ -1,0 +1,148 @@
+"""BT-1 inference engine: one image in, four site class probabilities out. No generator truth anywhere.
+
+This is the 'sidec' path of jobs/sidehead2.py extract (LIMB=1, SIDE_MODE=distill) with everything that reads a sidecar,
+a part map or a rendered side removed, plus the exported decision layer (tools/fit_decision_bt1.py) and the test-time
+mirror (D-04, M3-02): the mirrored image goes through the same path, its site keys are swapped back, and the two
+probability sets are averaged. The dev5 extraction rows in DDData results/bt1/ext are the parity reference
+(jobs/bt3_a40.sh stage R).
+
+Engine contract (d2-blockT d2qual/engines/structured.py):
+    E = BT1Engine(models_dir, ckpt, decision_json, tta=True)
+    probs, info = E.predict_image(rgb_uint8)       # probs (4 sites LUE RUE LLE RLE, 4 classes), info for the run log
+
+Env: CAP_THREADS (torch/OpenCV/ORT threads, default 8, the APL CPU cap), ORT_GPU=1 (det/pose on CUDA if onnxruntime-gpu
+is installed; default CPU, which is how the reference rows were made).
+"""
+import os, sys, json, time
+N_THR = int(os.environ.get('CAP_THREADS', '8'))
+for _k in ('OMP_NUM_THREADS', 'MKL_NUM_THREADS', 'OPENBLAS_NUM_THREADS'):
+    os.environ.setdefault(_k, str(N_THR))
+import numpy as np
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SITES = ['LUE', 'RUE', 'LLE', 'RLE']
+SWAP = {'LUE': 'RUE', 'RUE': 'LUE', 'LLE': 'RLE', 'RLE': 'LLE'}
+
+
+class DecisionLayer:
+    """StandardScaler + multinomial logistic regression, evaluated from exported numbers (no sklearn at run time)."""
+
+    def __init__(self, path):
+        d = json.load(open(path))
+        self.doc = d
+        self.mean, self.scale = np.array(d['mean']), np.array(d['scale'])
+        self.W, self.b = np.array(d['coef']), np.array(d['intercept'])
+
+    def proba(self, X):
+        z = (np.asarray(X, float) - self.mean) / self.scale @ self.W.T + self.b
+        z = z - z.max(1, keepdims=True); e = np.exp(z)
+        return e / e.sum(1, keepdims=True)
+
+
+def features(row):
+    import eval_v3 as EV
+    return EV.feat(row) + EV.limb_feat(row)
+
+
+class BT1Engine:
+    name = 'bt1'
+
+    def __init__(self, models_dir, ckpt, decision_json, tta=True, device=None):
+        sys.path.insert(0, HERE); sys.path.insert(0, os.path.join(HERE, '..', 'jobs'))
+        os.environ.setdefault('SIDE_MODE', 'distill')
+        import torch, cv2
+        cv2.setNumThreads(N_THR); torch.set_num_threads(N_THR)
+        import onnxruntime as ort
+        if os.environ.get('ORT_GPU') != '1' and not getattr(ort.InferenceSession, '_d2_cpu', False):
+            _IS = ort.InferenceSession
+
+            class _C(_IS):
+                _d2_cpu = True
+
+                def __init__(self, *a, **kw):
+                    so = kw.get('sess_options') or ort.SessionOptions(); so.intra_op_num_threads = N_THR; so.inter_op_num_threads = 1
+                    kw['sess_options'] = so; kw['providers'] = ['CPUExecutionProvider']; super().__init__(*a, **kw)
+            ort.InferenceSession = _C
+        import lend as LE
+        LE.M = models_dir
+        import eval_v3 as EV, test_a_masks as TA
+        from side_kp import geodesic_fast
+        TA.geodesic = geodesic_fast
+        import bt1_limb as BL, parts as PT
+        self.torch, self.cv2, self.EV, self.BL, self.PT = torch, cv2, EV, BL, PT
+        self.m = EV.load_models(None, os.path.join(models_dir, 'lend3d.pt'), os.path.join(models_dir, 'lwound2.pt'))
+        self.dev = self.m['dev'] if device is None else device
+        net = BL.LimbModel(len(PT.SEG3_CLASSES), os.path.join(models_dir, 'sam2_1_hiera_tiny.pt'))
+        net.load_state_dict(torch.load(ckpt, map_location='cpu')); net.to(self.dev).eval()
+        self.net, self.tta = net, tta
+        self.layer = DecisionLayer(decision_json)
+
+    def rows(self, img, flip=False):
+        """img: 1280x960 letterboxed RGB uint8. Returns (site rows keyed by anatomical site, frame dict, timings)."""
+        torch, cv2, EV, BL = self.torch, self.cv2, self.EV, self.BL
+        import torch.nn.functional as F
+        import test_e as TE, test_e2 as T2
+        from d2pipe import frame_facing
+        from side_kp import to_classmap_kp, site_rows
+        from checks import assign_gt_side
+        from seg_features import square_crop
+        from seg_train_e2e import MEAN, STD
+        t = {}; t0 = time.time()
+        if flip:
+            img = np.ascontiguousarray(img[:, ::-1])
+        bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        boxes = self.m['det'](bgr)
+        k, s = self.m['wb'].pose_model(bgr, bboxes=boxes)
+        kxy = None
+        if len(k):
+            i = int(np.argmax(s[:, :17].mean(1))); kp = k[i]; kxy = kp[:17]
+            axis = TE.unit((kp[5] + kp[6]) / 2 - (kp[11] + kp[12]) / 2); pp = TE.perp(axis)
+        else:
+            axis = np.array([0.0, -1.0]); pp = TE.perp(axis)
+        t['det_pose'] = time.time() - t0; t1 = time.time()
+        box = tuple(float(v) for v in max(boxes, key=lambda q: (q[2] - q[0]) * (q[3] - q[1]))[:4]) if len(boxes) else (0, 0, 1280, 960)
+        crop, (X1, Y1, S) = square_crop(img, box, 0.15)
+        x = (torch.from_numpy(cv2.resize(crop, (1024, 1024))).permute(2, 0, 1).float() / 255 - MEAN) / STD
+        with torch.no_grad():
+            outs = self.net(x[None].to(self.dev)); ps, pd = outs[0], outs[1]
+            s2 = max(int(round(S / 2)), 1)
+            lab = F.interpolate(ps.float(), size=(s2, s2), mode='bilinear', align_corners=False)[0].argmax(0).cpu().numpy()
+            pl = F.interpolate(pd.float(), size=(s2, s2), mode='bilinear', align_corners=False)[0].softmax(0)[0].cpu().numpy()
+        seg3 = np.zeros((480, 640), np.uint8); pleft = np.full((480, 640), 0.5, np.float32)
+        ox, oy = int(round(X1 / 2)), int(round(Y1 / 2))
+        ys0, xs0 = max(0, oy), max(0, ox); ys1, xs1 = min(480, oy + s2), min(640, ox + s2)
+        if ys1 > ys0 and xs1 > xs0:
+            seg3[ys0:ys1, xs0:xs1] = lab[ys0 - oy:ys1 - oy, xs0 - ox:xs1 - ox]
+            pleft[ys0:ys1, xs0:xs1] = pl[ys0 - oy:ys1 - oy, xs0 - ox:xs1 - ox]
+        t['net'] = time.time() - t1; t2 = time.time()
+        seg, wm, tq = EV.fold_extras(seg3)
+        sfr = T2.seg_frame(seg)
+        fac, fconf = frame_facing(seg, sfr)
+        left = np.array([1.0, 0.0]) if (sfr is None and not len(k)) else (sfr[2] if sfr else 1) * pp
+        cm1, names, e1, s1, _ = to_classmap_kp(seg, left, axis, None if kxy is None else kxy.tolist())
+        pside = np.where(pleft >= 0.5, 1, 2).astype(np.uint8)
+        conf = np.where(np.maximum(pleft, 1 - pleft) >= 0.75, 0.0, 99.0).astype(np.float32)
+        cmC, eC, sC = assign_gt_side(cm1, names, seg, e1, s1, pside, conf)
+        t['assign'] = time.time() - t2; t3 = time.time()
+        rows = site_rows(self.m, img, cmC, names, eC, sC, wm, tq)
+        lf = BL.limb_site_features(outs[2][0], outs[3][0], (X1, Y1, S), {k_: r_['vis_px'] for k_, r_ in rows.items()})
+        for k_ in rows:
+            rows[k_]['limb'] = lf[k_]
+        t['site_rows'] = time.time() - t3
+        if flip:
+            rows = {SWAP[k_]: v_ for k_, v_ in rows.items()}
+        return rows, dict(facing=fac or 'unknown', facing_conf=fconf), t
+
+    def predict_image(self, rgb):
+        """rgb: any-size RGB uint8 (as decoded). Returns (probs (4, 4) in SITES x classes order, info)."""
+        from d2pipe import letterbox
+        img = letterbox(np.ascontiguousarray(rgb))
+        ro, fo, to = self.rows(img, False)
+        P = self.layer.proba([features(ro[s]) for s in SITES])
+        info = dict(frame=fo, t=to, rows=ro)
+        if self.tta:
+            rf, ff, tf = self.rows(img, True)
+            PF = self.layer.proba([features(rf[s]) for s in SITES])
+            info.update(rows_flip=rf, t_flip=tf, p_orig=P.round(4).tolist(), p_flip=PF.round(4).tolist())
+            P = 0.5 * (P + PF)
+        return P, info

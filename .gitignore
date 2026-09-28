@@ -2,3 +2,8 @@ __pycache__/
 *.pyc
 COMMIT
 assets
+container/data/
+container/model_toy/
+container/model/
+container/reports/junit.xml
+container/.pytest_cache/

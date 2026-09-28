@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:d2:qual-predictions:1.0",
+  "title": "D2 Qualification Task predictions.json",
+  "description": "Mirror of D2 Qualification ICD v1.0 (Aug 2026) sections 3.2 and Appendix A, for M12 self-validation. The JHU/APL validate_predications.py script governs. Open issue: Appendix A omits not_testable from injury_type; section 3.2 includes it, so it is allowed here (forum Q2). additionalProperties is false as a conservative guess; the ICD does not say whether extra keys are tolerated.",
+  "type": "object",
+  "required": ["schema_version", "submission", "predictions"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "submission": {
+      "type": "object",
+      "required": ["team_name", "version", "email"],
+      "additionalProperties": false,
+      "properties": {
+        "team_name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "email": { "type": "string", "minLength": 3 }
+      }
+    },
+    "predictions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["image_id", "sites"],
+        "additionalProperties": false,
+        "properties": {
+          "image_id": { "type": "string", "minLength": 1, "description": "Exact input file name." },
+          "sites": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "required": ["body_region", "laterality", "injury_type"],
+              "additionalProperties": false,
+              "properties": {
+                "body_region": { "enum": ["upper_extremity", "lower_extremity"] },
+                "laterality": { "enum": ["left", "right"] },
+                "injury_type": { "enum": ["no_injury", "wound", "amputation", "not_testable"] }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
