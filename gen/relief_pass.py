@@ -25,6 +25,7 @@ def camera_rays(sc, cam, w=W, h=H):
     """world-space origin and unit directions for every pixel centre (row 0 = top of the image)"""
     sc.render.resolution_x, sc.render.resolution_y = w, h
     sc.render.pixel_aspect_x = sc.render.pixel_aspect_y = 1
+    bpy.context.view_layer.update()                             # matrix_world is stale until the depsgraph updates
     mw = cam.matrix_world
     fr = [mw @ v for v in cam.data.view_frame(scene=sc)]      # top-right, bottom-right, bottom-left, top-left
     tr, br, bl, tl = [np.array(v) for v in fr]
