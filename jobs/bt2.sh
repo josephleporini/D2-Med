@@ -19,6 +19,9 @@ fail() {
     (cd $DD && git add --sparse -A results/${TAG}_failed && git commit -qm "BT-2 $TAG: failure log ($*)" && git pull -q --rebase origin main && git push -q origin main); fi
   exit 5; }
 [ ! -f $MODEL ] || fail "$MODEL exists; refusing to overwrite"
+# aggregate fidelity summary from the reserve-photo run (aggregates only; the job itself kept no logs off the volume)
+[ -f $P/out/fidelity_real/summary.json ] && echo "FIDELITY_SUMMARY $(tr -d '\n ' < $P/out/fidelity_real/summary.json)"
+grep -E "MEASURE_DONE|FETCH_DONE|Traceback" $P/logs/fidelity_real.log 2>/dev/null | tail -8
 [ -e $R/models ] || ln -sfn $P/models $R/models
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || fail "no GPU"
 NP=$(nproc); CPUS=0-$(( NP < 8 ? NP - 1 : 7 ))
