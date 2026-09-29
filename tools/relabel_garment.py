@@ -27,9 +27,12 @@ def affected(sc):
     return bool(sc.get('wounds')) and (g.get('top', 'none') != 'none' or g.get('bottom', 'none') != 'none')
 
 
-def same_png(a, b):
+TOL_PX = 50     # GPU (OptiX) and CPU renders of the same geometry differ on a few edge pixels (3 px seen on D0067)
+
+
+def ndiff(a, b):
     A, B = np.array(Image.open(a).convert('L')), np.array(Image.open(b).convert('L'))
-    return np.array_equal(A, B)
+    return int((A != B).sum())
 
 
 def site_map(p):
@@ -43,7 +46,9 @@ def one(sc_path):
     if not affected(sc):
         return sid, 'skipped', None
     w = os.path.join(work, sid); os.makedirs(w, exist_ok=True)
-    p = json.load(open(os.path.join(d, sid + '_params.json'))); p['garment_label_fix'] = True
+    pf = os.path.join(d, sid + '_params.json')      # sets without params files (dev5_closeup): the sidecar's copy
+    p = json.load(open(pf)) if os.path.exists(pf) else {k: v for k, v in sc['params'].items() if not k.startswith('_')}
+    p['garment_label_fix'] = True
     pp = os.path.join(w, sid + '_params.json'); json.dump(p, open(pp, 'w'), indent=1)
     r = subprocess.run([bpy, 'scene4.py', 'labels', pp, w], cwd=GEN, capture_output=True, text=True, timeout=900,
                        env=dict(os.environ, GEN_COMMIT=commit))
@@ -52,11 +57,11 @@ def one(sc_path):
         return sid, 'error', (r.stdout + r.stderr)[-400:]
     new = json.load(open(ns))
     # geometry check: site map, occluder owner and full outlines must decode identically
-    if not (np.array_equal(site_map(os.path.join(d, sid + '_id.png')), site_map(os.path.join(w, sid + '_id.png')))
-            and same_png(os.path.join(d, sid + '_occ.png'), os.path.join(w, sid + '_occ.png'))
-            and same_png(os.path.join(d, sid + '_amodal.png'), os.path.join(w, sid + '_amodal.png'))
-            and new['terminal'] == sc['terminal']):
-        return sid, 'GEOMETRY_MISMATCH', None
+    geo = {'id': int((site_map(os.path.join(d, sid + '_id.png')) != site_map(os.path.join(w, sid + '_id.png'))).any(-1).sum()),
+           'occ': ndiff(os.path.join(d, sid + '_occ.png'), os.path.join(w, sid + '_occ.png')),
+           'amodal': ndiff(os.path.join(d, sid + '_amodal.png'), os.path.join(w, sid + '_amodal.png'))}
+    if max(geo.values()) > TOL_PX or new['terminal'] != sc['terminal']:
+        return sid, 'GEOMETRY_MISMATCH', geo
     o3, n3 = PT.decode3(os.path.join(d, sid + '_part3.png')), PT.decode3(os.path.join(w, sid + '_part3.png'))
     part_changed = any(not np.array_equal(a, b) for a, b in zip(o3, n3))
     lab_changed = new['labels_by_threshold'] != sc['labels_by_threshold']
@@ -67,16 +72,16 @@ def one(sc_path):
     diff = {t: v for t, v in diff.items() if v}
     new['provenance'] = sc['provenance']
     new['relabel'] = {'fix': 'garment_label_fix', 'date': '2026-09-28', 'commit': commit,
-                      'rgb_unchanged': True, 'labels_changed': diff,
+                      'rgb_unchanged': True, 'labels_changed': diff, 'edge_px_vs_original': geo,
                       'wound_visible_px_before': sc['wound_visible_px']}
     new['params'] = sc['params']                         # the scene's params as rendered; the fix is recorded above
-    shutil.copy(os.path.join(w, sid + '_part3.png'), os.path.join(d, sid + '_part3.png'))
-    shutil.copy(os.path.join(w, sid + '_injury.png'), os.path.join(d, sid + '_injury.png'))
+    for k in ('part3', 'injury', 'id', 'occ', 'amodal'):        # all truth maps from one render, so they agree pixel for pixel
+        shutil.copy(os.path.join(w, sid + f'_{k}.png'), os.path.join(d, sid + f'_{k}.png'))
     json.dump(new, open(sc_path, 'w'), indent=1)
     return sid, 'relabelled', diff
 
 
-scs = sorted(glob.glob(os.path.join(split, 'batch_*', '*_sidecar.json')))
+scs = sorted(glob.glob(os.path.join(split, 'batch_*', '*_sidecar.json')) or glob.glob(os.path.join(split, '*_sidecar.json')))
 res = {}
 with ThreadPoolExecutor(J) as ex:
     for k, (sid, status, info) in enumerate(ex.map(one, scs)):
