@@ -15,7 +15,7 @@ T0=$(date +%s); stage() { echo "=== STAGE $1 $(date -u +%T) elapsed $(( $(date +
 ( sleep $(python3 -c "print(int($MAX_H*3600))"); echo "BT2_WALLCLOCK_LIMIT"; pkill -P $$; kill $$ ) & WD=$!
 fail() {
   echo "BT2_FAIL $*"; kill $WD 2>/dev/null
-  if [ -d "${DD:-}/.git" ]; then mkdir -p $DD/results/${TAG}_failed && tail -150 $P/logs/$TAG.log > $DD/results/${TAG}_failed/FAILED_log.txt
+  if [ -d "${DD:-}/.git" ]; then mkdir -p $DD/results/${TAG}_failed && grep -v -E "FIDELITY_SUMMARY|MEASURE_DONE|FETCH_" $P/logs/$TAG.log | tail -150 > $DD/results/${TAG}_failed/FAILED_log.txt
     (cd $DD && git add --sparse -A results/${TAG}_failed && git commit -qm "BT-2 $TAG: failure log ($*)" && git pull -q --rebase origin main && git push -q origin main); fi
   exit 5; }
 [ ! -f $MODEL ] || fail "$MODEL exists; refusing to overwrite"
