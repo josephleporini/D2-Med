@@ -10,6 +10,15 @@ All three are built from the body mesh in its rest pose, so they deform with the
               label of the body part beneath, so a clothed limb still counts as limb.
   tourniquets a band of limb faces 3-4 cm wide, pushed out ~15 mm, on the upper arm or thigh; part label TQ.
 Parameters (prm): wounds {site: type}, garments {top, bottom, boots}, tourniquets [site], hidden_wound_p.
+
+wound_style 'v2' (BT-2, 28 Sep; absent = v1, unchanged draw for draw):
+  size        wider range, including small wounds (laceration 4-20 cm by 1.0-3.0 cm; penetrating 1.0-3.4 cm; burn discs
+              3-9 cm)
+  material    moulage variety: fresh wet red, dark clotted, or mixed; gloss from wet (roughness 0.08) to matte (0.45);
+              per-wound colour jitter
+  blood halo  with probability 0.5, a speckled blood stain on the skin around the wound (2-6 cm beyond it). Halo faces
+              keep their limb part label: the wound truth (and the 20 px rule) is the wound itself, not the stain
+  blood smear prm['blood_smear'] = site: a stain on an intact, unwounded limb (confuser 'blood_material'; label unchanged)
 """
 import math
 import bpy, bmesh
@@ -51,13 +60,68 @@ def wound_material(kind, rng):
     return _noise_mat('w_' + kind, (0.20, 0.01, 0.01), (0.55, 0.05, 0.04), rng.uniform(30, 80), 0.3, 0.8)
 
 
+def _jit(c, rng, k=0.15):
+    return tuple(float(min(1.0, max(0.0, x * rng.uniform(1 - k, 1 + k)))) for x in c)
+
+
+def wound_material_v2(kind, rng):
+    if kind == 'burn':
+        c1, c2 = _jit((0.06, 0.04, 0.03), rng), _jit(((0.55, 0.18, 0.12), (0.62, 0.30, 0.26))[int(rng.integers(2))], rng)
+        return _noise_mat('w2_burn', c1, c2, rng.uniform(12, 45), rng.uniform(0.4, 0.8), rng.uniform(0.3, 0.8))
+    look = int(rng.integers(3))                          # 0 fresh wet, 1 dark clotted, 2 mixed
+    dark = _jit(((0.20, 0.01, 0.01), (0.10, 0.01, 0.01), (0.16, 0.02, 0.02))[look], rng)
+    lite = _jit(((0.60, 0.05, 0.04), (0.28, 0.03, 0.02), (0.50, 0.06, 0.05))[look], rng)
+    if kind == 'open_fracture':
+        lite = _jit((0.80, 0.74, 0.62), rng, 0.08)
+    rough = (rng.uniform(0.08, 0.25), rng.uniform(0.3, 0.45), rng.uniform(0.15, 0.4))[look]
+    return _noise_mat('w2_' + kind, dark, lite, rng.uniform(25, 90), rough, rng.uniform(0.4, 1.0))
+
+
+def blood_material(rng):
+    return _noise_mat('blood', _jit((0.12, 0.015, 0.01), rng, 0.25), _jit((0.32, 0.03, 0.02), rng, 0.25),
+                      rng.uniform(20, 70), rng.uniform(0.25, 0.6), 0.1)
+
+
+def _stain(ob, faces, centres, c0, r_in, r_out, rng, keep_p=0.7):
+    """Speckled stain: faces between r_in and r_out of c0 (plus a random subset thinning with distance)."""
+    sel = []
+    for i in faces:
+        d = (centres[i] - c0).length
+        if r_in <= d < r_out and rng.random() < keep_p * (1.0 - 0.6 * (d - r_in) / max(r_out - r_in, 1e-6)):
+            sel.append(i)
+    if sel:
+        ob.data.materials.append(blood_material(rng)); mi = len(ob.data.materials) - 1
+        for i in sel:
+            ob.data.polygons[i].material_index = mi
+    return len(sel)
+
+
+def add_blood_smear(ob, arm, fsite, fpart, prm, rng):
+    """Confuser 'blood_material': a stain on an intact limb with no wound. Labels unchanged."""
+    site = prm.get('blood_smear')
+    if not site:
+        return {}
+    limb = site[1:]
+    cand = [i for i, (s, fp) in enumerate(zip(fsite, fpart)) if s == site and fp[2:] in LIMB_PARTS[limb]]
+    if not cand:
+        return {}
+    centres = {i: ob.data.polygons[i].center.copy() for i in cand}
+    c0 = centres[cand[int(rng.integers(len(cand)))]]
+    n = _stain(ob, cand, centres, c0, 0.0, rng.uniform(0.04, 0.09), rng, 0.8)
+    return {site: {'blood_smear_faces': n}}
+
+
 def _seg_dist(p, a, b):
     ab = b - a; t = max(0.0, min(1.0, (p - a).dot(ab) / max(ab.length_squared, 1e-9)))
     return (p - (a + ab * t)).length, t
 
 
+WOUND_UNDER = {}         # face index -> limb part label before it became a wound face
+
+
 def add_wounds(ob, arm, fsite, fpart, prm, rng):
     """Mutates fpart (wound faces -> <side>_wound). Returns {site: {'type', 'n_faces'}}."""
+    WOUND_UNDER.clear()
     out = {}
     for site, kind in prm.get('wounds', {}).items():
         limb = site[1:]; sd = site[0]
@@ -73,26 +137,33 @@ def add_wounds(ob, arm, fsite, fpart, prm, rng):
         c0 = centres[cand[int(rng.integers(len(cand)))]]
         seg = 0 if (c0 - pts[0]).length < (c0 - pts[1]).length else 1
         axis = (pts[seg + 1] - pts[seg]).normalized()
+        v2 = prm.get('wound_style') == 'v2'
         if kind == 'laceration' or kind == 'open_fracture':
-            L = rng.uniform(0.08, 0.16); r = rng.uniform(0.018, 0.028)
+            L, r = (rng.uniform(0.04, 0.20), rng.uniform(0.010, 0.030)) if v2 else (rng.uniform(0.08, 0.16), rng.uniform(0.018, 0.028))
             a, b = c0 - axis * L / 2, c0 + axis * L / 2
             sel = [i for i in cand if _seg_dist(centres[i], a, b)[0] < r]
         elif kind == 'penetrating':
-            r = rng.uniform(0.020, 0.032); sel = [i for i in cand if (centres[i] - c0).length < r]
+            r = rng.uniform(0.010, 0.034) if v2 else rng.uniform(0.020, 0.032)
+            sel = [i for i in cand if (centres[i] - c0).length < r]
         else:   # burn: irregular patch = union of a few discs
             sel = set()
             for _ in range(int(rng.integers(3, 6))):
                 cc = centres[cand[int(rng.integers(len(cand)))]] if rng.random() < 0.3 else c0 + Vector(rng.normal(0, 0.03, 3))
-                rr = rng.uniform(0.05, 0.09)
+                rr = rng.uniform(0.03, 0.09) if v2 else rng.uniform(0.05, 0.09)
                 sel |= {i for i in cand if (centres[i] - cc).length < rr}
             sel = sorted(sel)
         if len(sel) < 6:            # coarse mesh: guarantee a visible patch (nearest faces to the centre)
             sel = sorted(cand, key=lambda i: (centres[i] - c0).length)[:6]
-        ob.data.materials.append(wound_material(kind, rng)); mi = len(ob.data.materials) - 1
+        ob.data.materials.append(wound_material_v2(kind, rng) if v2 else wound_material(kind, rng)); mi = len(ob.data.materials) - 1
         for i in sel:
             ob.data.polygons[i].material_index = mi
+            WOUND_UNDER[i] = fpart[i]                    # the part under the wound, for a garment that covers it
             fpart[i] = site + '_wound'
         out[site] = {'type': kind, 'n_faces': len(sel)}
+        if v2 and rng.random() < 0.5:                    # blood halo around the wound, limb label kept
+            ext = max(((centres[i] - c0).length for i in sel), default=0.02)
+            ring = [i for i in cand if i not in set(sel)]
+            out[site]['halo_faces'] = _stain(ob, ring, centres, c0, 0.0, ext + rng.uniform(0.02, 0.06), rng)
     return out
 
 
@@ -128,7 +199,11 @@ def add_garments(ob, arm, fsite, fpart, prm, rng, label_id):
     hidden_p = prm.get('hidden_wound_p', 0.2)
     wound_hidden = {s: rng.random() < hidden_p for s in 'LR'}
     centres = [p.center.z for p in ob.data.polygons]
-    labels = [label_id[fp] for fp in fpart]
+    # Garment faces carry the label of the part beneath. Over a hidden wound that is the limb part, not the wound:
+    # the cloth hides the wound (truth fix 28 Sep, 'garment_label_fix'; before it, cloth over a hidden wound was
+    # labelled wound in the part map and counted as visible wound pixels). Applied when prm['garment_label_fix'].
+    fix = bool(prm.get('garment_label_fix'))
+    labels = [label_id[WOUND_UNDER.get(i, fp) if (fix and fp.endswith('_wound')) else fp] for i, fp in enumerate(fpart)]
     site_ids = [SITE_ID[s] for s in fsite]
     col = CLOTH_COLOURS[int(rng.integers(len(CLOTH_COLOURS)))]
     top, bottom, boots = gp.get('top', 'none'), gp.get('bottom', 'none'), gp.get('boots', False)

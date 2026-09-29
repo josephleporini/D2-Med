@@ -61,6 +61,8 @@ def setup3(prm, rng):
     skin = mk.plastic_material('skin', S.SKIN_TONES[prm['skin']])
     ob.data.materials.append(skin)
     wounds = FD.add_wounds(ob, arm, fsite, fpart, prm, rng)
+    if prm.get('blood_smear'):
+        prm['_smear'] = FD.add_blood_smear(ob, arm, fsite, fpart, prm, rng)   # confuser; labels unchanged (not a wound)
     shells = FD.add_garments(ob, arm, fsite, fpart, prm, rng, LABEL_ID) + FD.add_tourniquets(ob, arm, fsite, fpart, prm, rng, LABEL_ID)
     bpy.context.view_layer.update()
     dg = bpy.context.evaluated_depsgraph_get()

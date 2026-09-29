@@ -1,6 +1,7 @@
 """Probe B generator vNext (scene4): v3 scene, v3 outputs unchanged, plus raw physical truth (spec v1.1, section 10).
 
   python3 scene4.py full <params.json> <out_dir>
+  python3 scene4.py labels <params.json> <out_dir>     truth products only (no RGB); used to relabel existing scenes
 
 Writes, per scene <id>:
   <id>.jpg, <id>_part3.png, <id>_id.png          identical to scene3 (same seed and params reproduce v3 renders)
@@ -71,7 +72,7 @@ def occ_at(occ, x, y, r=1):
 OCC_NAME = {0: 'background', 1: 'floor', 2: 'occluder', 3: 'torso_or_head', 4: 'LUE', 5: 'RUE', 6: 'LLE', 7: 'RLE'}
 
 
-def main_full(prm_path, out_dir):
+def main_full(prm_path, out_dir, rgb=True):
     t0 = time.time(); tm = {}
     raw = open(prm_path, 'rb').read(); prm = json.loads(raw); rng = np.random.default_rng(prm['seed'])
     sid = prm['scene_id']
@@ -79,7 +80,10 @@ def main_full(prm_path, out_dir):
     sc, cam = ctx['sc'], ctx['cam']
     vt = sc.view_settings.view_transform
     tgt, d = S.place_camera(cam, ctx['P'], prm, rng)
-    t = time.time(); S2.render_rgb(ctx, prm, os.path.join(out_dir, sid + '.jpg'), vt); tm['rgb'] = time.time() - t
+    if rgb:                                           # render_rgb draws nothing from rng, so skipping it keeps geometry
+        t = time.time(); S2.render_rgb(ctx, prm, os.path.join(out_dir, sid + '.jpg'), vt); tm['rgb'] = time.time() - t
+    else:                                             # same image settings the RGB pass leaves behind (PNG stays RGB)
+        sc.render.image_settings.file_format = 'JPEG'
     t = time.time()
     Ap = S3._id_pass(ctx, ctx['part_objs'], os.path.join(out_dir, sid + '_part3.png'), S3.PART3_COLORS['OCC'])
     Ai = S3._id_pass(ctx, ctx['site_objs'], os.path.join(out_dir, sid + '_id.png'), S.ID_COLORS['OCC'])
@@ -227,4 +231,4 @@ if __name__ == '__main__':
     if os.environ.get('PYTHONHASHSEED') != '0':      # set iteration order feeds geometry; v3 renders were not reproducible
         os.execve(sys.executable, [sys.executable] + sys.argv, dict(os.environ, PYTHONHASHSEED='0'))
     a = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else sys.argv[1:]
-    main_full(a[1], a[2])
+    main_full(a[1], a[2], rgb=(a[0] != 'labels'))
