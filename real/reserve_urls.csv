@@ -1,0 +1,201 @@
+n,source,page_url,pose,camera_view,screening_class,manikin_confidence
+1,DVIDS,https://www.dvidshub.net/image/9622798/nmrtc-pensacola-held-tactical-combat-casualty-care-training-naval-hospital-pensacola-feb-26-2026,supine,"foot-end, side, oblique",wound/not-testable mix,high
+2,DVIDS,https://www.dvidshub.net/image/1048694/stop-bleeding,supine,"foot-end, oblique",wound,medium
+3,DVIDS,https://www.dvidshub.net/image/3699776/staying-alive,supine,oblique,wound,high
+4,DVIDS,https://www.dvidshub.net/image/3699794/staying-alive,supine,"foot-end, side, oblique",wound/not-testable mix,high
+5,DVIDS,https://www.dvidshub.net/image/6023420/new-training-prepares-airmen-lifesavers,supine,oblique,wound,high
+6,DVIDS,https://www.dvidshub.net/image/9228006/training-casualty-and-critical-care-female-patients,supine,"foot-end, oblique",wound,high
+7,DVIDS,https://www.dvidshub.net/image/9291617/mcas-miramar-special-reaction-team-tactical-combat-casualty-care-course-during-srt-tryouts,supine,"side, oblique, low angle",wound/not-testable mix,high
+8,DVIDS,https://www.dvidshub.net/image/7506077/tccc-training-1st-special-operations-medical-group-2022,unspecified,oblique,wound/not-testable mix,high
+9,DVIDS,https://www.dvidshub.net/image/9130250/el-salvador-us-canada-accomplish-tactical-combat-casualty-care-training,supine,oblique,wound/not-testable mix,high
+10,DVIDS,https://www.dvidshub.net/image/9335848/veterinary-readiness-activity-soldier-year-mstc,supine,"oblique, low angle",wound,high
+11,DVIDS,https://www.dvidshub.net/image/9335857/veterinary-readiness-activity-soldier-year-mstc,supine,"foot-end, oblique, elevated",wound,high
+12,DVIDS,https://www.dvidshub.net/image/9335858/veterinary-readiness-activity-soldier-year-mstc,supine,"oblique, elevated",wound/not-testable mix,high
+13,DVIDS,https://www.dvidshub.net/image/9335870/veterinary-readiness-activity-soldier-year-mstc,supine,"side, oblique",wound,high
+14,DVIDS,https://www.dvidshub.net/image/3013302/combat-medics-complete-emt-refresher-course,supine,"oblique, wide",unclear,medium
+15,DVIDS,https://www.dvidshub.net/image/3013307/combat-medics-complete-emt-refresher-course,supine,oblique,wound/not-testable mix,high
+16,DVIDS,https://www.dvidshub.net/image/6365221/usareur-fall-efmb-2020,supine,oblique,wound,medium
+17,DVIDS,https://www.dvidshub.net/image/7506073/tccc-training-1st-special-operations-medical-group-2022,supine,oblique,wound/not-testable mix,high
+18,DVIDS,https://www.dvidshub.net/image/7679146/commanding-officer-nmotc-visits-naval-special-operations-medical-institute,supine,"side, oblique, elevated",wound,high
+19,DVIDS,https://www.dvidshub.net/image/7679148/commanding-officer-nmotc-visits-naval-sprecial-operations-medical-institute,unspecified,oblique (unspecified),unclear,high
+20,DVIDS,https://www.dvidshub.net/image/7997115/tactical-casualty-combat-care-training,supine,"foot-end, oblique",wound,high
+21,DVIDS,https://www.dvidshub.net/image/9411400/28th-medical-group-commanders-challenge,supine,"side, oblique",wound/not-testable mix,high
+22,DVIDS,https://www.dvidshub.net/image/9499454/us-nmrtc-guam-strengthens-warfighting-medical-readiness-through-tccc-training,supine,"oblique, elevated",wound,high
+23,DVIDS,https://www.dvidshub.net/image/9622786/nmrtc-pensacola-held-tactical-combat-casualty-care-training-naval-hospital-pensacola-feb-26-2026,supine,oblique,not testable,high
+24,DVIDS,https://www.dvidshub.net/image/9739370/enhancing-readiness-through-combat-tccc,supine,oblique,not testable,high
+25,DVIDS,https://www.dvidshub.net/image/9882313/145th-medical-group-sharpens-tccc-skills,supine,oblique,wound/not-testable mix,high
+26,DVIDS,https://www.dvidshub.net/image/2230532/39th-signal-commanders-prime-time-training-combat-life-saver,supine,"oblique, elevated, wide",wound,high
+27,DVIDS,https://www.dvidshub.net/image/3013335/combat-medics-complete-emt-refresher-course,supine,"foot-end, oblique",wound,high
+28,DVIDS,https://www.dvidshub.net/image/5763579/1-geronimo-medics-practice-tactical-combat-casualty-care,supine,oblique,wound,high
+29,DVIDS,https://www.dvidshub.net/image/6231685/best-medic-competition,supine,"foot-end, oblique",not testable,high
+30,DVIDS,https://www.dvidshub.net/image/6231687/best-medic-competition,supine,"oblique, elevated",wound,high
+31,DVIDS,https://www.dvidshub.net/image/6231688/best-medic-competition,supine,"oblique, wide",unclear,high
+32,DVIDS,https://www.dvidshub.net/image/6625512/550th-medical-company-area-support-conducts-notional-mass-casualty-emergency-guardian-response-2021,supine,"side, oblique",wound/not-testable mix,high
+33,DVIDS,https://www.dvidshub.net/image/6788872/crash-care-army-reserve-medics-respond-mass-casualty-training-event,supine,"foot-end, oblique, low angle",wound,high
+34,DVIDS,https://www.dvidshub.net/image/7506074/tccc-training-1st-special-operations-medical-group-2022,supine,"oblique, elevated",wound/not-testable mix,high
+35,DVIDS,https://www.dvidshub.net/image/7690108/cherry-point-sailors-refine-battlefield-medicine-skills,supine,oblique,wound/not-testable mix,high
+36,DVIDS,https://www.dvidshub.net/image/8815015/navy-expeditionary-medicine-teams-hone-skills-realistic-operational-scenarios-enhance-readiness,supine,"head-end, oblique, elevated",unclear,high
+37,DVIDS,https://www.dvidshub.net/image/8896047/operation-blue-horizon-2025-enhancing-joint-force-readiness-and-medical-excellence,supine,"oblique, elevated",not testable,high
+38,DVIDS,https://www.dvidshub.net/image/8896057/operation-blue-horizon-2025-enhancing-joint-force-readiness-and-medical-excellence,supine,"oblique, wide",wound,high
+39,DVIDS,https://www.dvidshub.net/image/9023410/realistic-simulation-sharpens-expeditionary-medicine-readiness,supine,oblique,unclear,high
+40,DVIDS,https://www.dvidshub.net/image/9117811/cherry-point-sailors-compete-celebrate-birthday-us-navy-corpsman,supine,"foot-end, oblique",wound,high
+41,DVIDS,https://www.dvidshub.net/image/9617786/practicing-spiritual-triage-9th-msc-chaplains-participate-mstc-lanes,supine,oblique,wound,high
+42,DVIDS,https://www.dvidshub.net/image/9617801/practicing-spiritual-triage-9th-msc-chaplains-participate-mstc-lanes,supine,"foot-end, oblique, low angle",unclear,high
+43,DVIDS,https://www.dvidshub.net/image/9617813/practicing-spiritual-triage-9th-msc-chaplains-participate-mstc-lanes,unspecified,"oblique, elevated",not testable,high
+44,DVIDS,https://www.dvidshub.net/image/9882311/145th-medical-group-sharpens-tccc-skills,supine,"head-end, oblique, elevated",wound,high
+45,DVIDS,https://www.dvidshub.net/image/2230282/39th-signal-commanders-prime-time-training-combat-life-saver,supine,"oblique, wide",unclear,high
+46,DVIDS,https://www.dvidshub.net/image/2230286/39th-signal-commanders-prime-time-training-combat-life-saver,supine,"overhead, oblique",wound,high
+47,DVIDS,https://www.dvidshub.net/image/6050013/tactical-operation-medical-manikin,supine,"head-end, oblique",wound/not-testable mix,high
+48,DVIDS,https://www.dvidshub.net/image/6050018/tactical-operation-medical-manikin,supine,oblique,wound/not-testable mix,high
+49,DVIDS,https://www.dvidshub.net/image/6625498/behind-moulage,supine,oblique,wound,high
+50,DVIDS,https://www.dvidshub.net/image/6625518/550th-medical-company-area-support-conducts-notional-mass-casualty-emergency-guardian-response-2021,unspecified,oblique (unspecified),not testable,high
+51,DVIDS,https://www.dvidshub.net/image/7240629/macdill-airmen-enhance-readiness-with-trauma-care-course,supine,"head-end, oblique, elevated",wound/not-testable mix,high
+52,DVIDS,https://www.dvidshub.net/image/7506070/tccc-training-1st-special-operations-medical-group-2022,supine,oblique,wound/not-testable mix,high
+53,DVIDS,https://www.dvidshub.net/image/7797355/connecticut-air-national-guard-adapts-tccc-active-shooter-scenarios,supine,"foot-end, oblique, elevated",wound,high
+54,DVIDS,https://www.dvidshub.net/image/7797364/connecticut-air-national-guard-adapts-tccc-active-shooter-scenarios,supine,"foot-end, oblique",wound/not-testable mix,high
+55,DVIDS,https://www.dvidshub.net/image/7797374/connecticut-air-national-guard-adapts-tccc-active-shooter-scenarios,supine,"oblique, wide",unclear,high
+56,DVIDS,https://www.dvidshub.net/image/8792626/us-army-fort-cavazos-medics-prepare-testing-new-female-trauma-manikin,supine,"oblique, wide",unclear,medium
+57,DVIDS,https://www.dvidshub.net/image/8792754/us-army-fort-cavazos-medics-prepare-testing-new-female-trauma-manikin,supine,"head-end, oblique, elevated",wound,high
+58,DVIDS,https://www.dvidshub.net/image/8896036/operation-blue-horizon-2025-enhancing-joint-force-readiness-and-medical-excellence,supine,"foot-end, oblique",wound,high
+59,DVIDS,https://www.dvidshub.net/image/8896049/operation-blue-horizon-2025-enhancing-joint-force-readiness-and-medical-excellence,supine,"foot-end, oblique",wound,high
+60,DVIDS,https://www.dvidshub.net/image/8899551/third-annual-operation-blue-horizon-exercise-macdill,supine,"foot-end, oblique, low angle",wound,high
+61,DVIDS,https://www.dvidshub.net/image/9106105/built-fight-corpsmen-excel-trauma-exercise-rotas-corpsman-cup,supine,oblique,wound/not-testable mix,high
+62,DVIDS,https://www.dvidshub.net/image/9350468/navy-corpsman-pensacola-sharpen-life-saving-skills-through-tactical-combat-casualty-care,supine,"foot-end, oblique",wound,high
+63,DVIDS,https://www.dvidshub.net/image/9436694/arizona-national-guard-soldiers-sharpen-combat-medic-skills-advanced-simulation-course,supine,"oblique, elevated",wound,high
+64,DVIDS,https://www.dvidshub.net/image/9436698/arizona-national-guard-soldiers-sharpen-combat-medic-skills-advanced-simulation-course,supine,"oblique, wide",wound/not-testable mix,high
+65,DVIDS,https://www.dvidshub.net/image/9499453/us-nmrtc-guam-strengthens-warfighting-medical-readiness-through-tccc-training,supine,"oblique, elevated",wound,high
+66,DVIDS,https://www.dvidshub.net/image/9622767/nmrtc-pensacola-held-tactical-combat-casualty-care-training-naval-hospital-pensacola-feb-26-2026,supine,"foot-end, oblique",wound/not-testable mix,high
+67,DVIDS,https://www.dvidshub.net/image/9622794/nmrtc-pensacola-held-tactical-combat-casualty-care-training-naval-hospital-pensacola-feb-26-2026,supine,"foot-end, oblique, elevated",wound/not-testable mix,high
+68,DVIDS,https://www.dvidshub.net/image/9634069/3rd-medical-battalion-conducts-tccc-training-course,supine,"head-end, side, oblique, low angle",wound/not-testable mix,high
+69,DVIDS,https://www.dvidshub.net/image/9634070/3rd-medical-battalion-conducts-tccc-training-course,supine,"foot-end, oblique, low angle",unclear,high
+70,DVIDS,https://www.dvidshub.net/image/9739368/enhancing-readiness-through-combat-tccc,supine,"foot-end, oblique, low angle",unclear,high
+71,DVIDS,https://www.dvidshub.net/image/9874948/maineiacs-conduct-tccc-tier-3,supine,overhead,wound,high
+72,DVIDS,https://www.dvidshub.net/image/9874969/maineiacs-conduct-tccc-tier-3,supine,oblique,wound,high
+73,DVIDS,https://www.dvidshub.net/image/9882303/145th-medical-group-sharpens-tccc-skills,supine,"foot-end, oblique, wide",wound,high
+74,DVIDS,https://www.dvidshub.net/image/9882312/145th-medical-group-sharpens-tccc-skills,supine,"foot-end, oblique",wound,high
+75,DVIDS,https://www.dvidshub.net/image/2230481/39th-signal-commanders-prime-time-training-combat-life-saver,supine,"overhead, oblique",wound/not-testable mix,high
+76,DVIDS,https://www.dvidshub.net/image/6541674/buckley-medics-participate-tactical-combat-casualty-care-exercise,supine,"oblique, low angle",wound/not-testable mix,high
+77,DVIDS,https://www.dvidshub.net/image/7679149/commanding-officer-nmotc-visits-naval-special-operations-medical-institute,supine,side,not testable,high
+78,DVIDS,https://www.dvidshub.net/image/7842345/joint-emergency-medicine-exercise-2023,supine,"oblique, wide",wound,high
+79,DVIDS,https://www.dvidshub.net/image/8252729/preparing-army-best-medic,supine,"side, oblique, elevated",wound,high
+80,DVIDS,https://www.dvidshub.net/image/8453426/jemx-2024-day-three-simulated-field-hospital,supine,"oblique, low angle",wound,high
+81,DVIDS,https://www.dvidshub.net/image/8453427/jemx-2024-day-three-simulated-field-hospital,supine,oblique,wound/not-testable mix,high
+82,DVIDS,https://www.dvidshub.net/image/8792761/us-army-fort-cavazos-medics-prepare-testing-new-female-trauma-manikin,supine,"foot-end, oblique, elevated",unclear,high
+83,DVIDS,https://www.dvidshub.net/image/8896032/operation-blue-horizon-2025-enhancing-joint-force-readiness-and-medical-excellence,semi-seated / being moved,oblique,unclear,high
+84,DVIDS,https://www.dvidshub.net/image/8963204/commandant-german-medical-academy-tours-nemwdc-strengthening-medical-ties,supine,"oblique, elevated, wide",wound,high
+85,DVIDS,https://www.dvidshub.net/image/9568043/core26-us-navy-use-next-generation-technology-during-simulated-mass-casualty-training-arctic,supine,oblique,unclear,high
+86,DVIDS,https://www.dvidshub.net/image/9753662/operation-sentinel-justice-enhances-training-realism-through-moulage-preparation-camp-shelby,supine,"foot-end, oblique",wound,high
+87,DVIDS,https://www.dvidshub.net/image/9874971/maineiacs-conduct-tccc-tier-3,unspecified,low angle,wound/not-testable mix,high
+88,DVIDS,https://www.dvidshub.net/image/9882314/145th-medical-group-sharpens-tccc-skills,supine,"foot-end, oblique",wound,high
+89,DVIDS,https://www.dvidshub.net/image/6401840/first-aid-training-using-new-tommannekin,supine,side,not testable,high
+90,DVIDS,https://www.dvidshub.net/image/8575712/us-army-europe-and-africa-best-squad-competition-tactical-exercise,supine,"head-end, oblique",wound,high
+91,DVIDS,https://www.dvidshub.net/image/8575715/us-army-europe-and-africa-best-squad-competition-tactical-exercise,supine,"side, oblique",wound,medium
+92,DVIDS,https://www.dvidshub.net/image/7310586/64th-bsb-cls-june-22,supine,"head-end, oblique, elevated",wound/not-testable mix,high
+93,DVIDS,https://www.dvidshub.net/image/7310588/64th-bsb-cls-june-22,supine,oblique,wound/not-testable mix,high
+94,DVIDS,https://www.dvidshub.net/image/6503467/2-8-cav-reg-medics-train-react-save-life,supine,"foot-end, oblique",wound/not-testable mix,high
+95,DVIDS,https://www.dvidshub.net/image/9919571/30th-medical-group-and-30th-security-forces-squadron-mass-casualty-exercise,supine,oblique,wound/not-testable mix,high
+96,DVIDS,https://www.dvidshub.net/image/538786/medical-simulation-training-center-refreshes-medical-skills,supine,oblique,wound/not-testable mix,high
+97,DVIDS,https://www.dvidshub.net/image/1849860/nhb-facilitates-tccc-course,supine,"oblique, elevated",not testable,high
+98,DVIDS,https://www.dvidshub.net/image/1910089/army-reserve-soldiers-demonstrate-traumatic-care-6th-12th-graders,supine,"oblique, elevated",wound,high
+99,DVIDS,https://www.dvidshub.net/image/2404638/2nd-medical-battalion-undergoes-final-casualty-care-exercise,supine,"side, oblique",wound,high
+100,DVIDS,https://www.dvidshub.net/image/2779414/real-life-casualty-simulations-prepare-2nd-medical-battalion,supine,"side, oblique",wound/not-testable mix,high
+101,DVIDS,https://www.dvidshub.net/image/4338316/tactical-combat-casualty-care-course,supine,"overhead, head-end, oblique",wound/not-testable mix,high
+102,DVIDS,https://www.dvidshub.net/image/4338367/tactical-combat-casualty-care-qualification,supine,"oblique, elevated, wide",wound,high
+103,DVIDS,https://www.dvidshub.net/image/4381868/aeromedical-evacuation-preserving-life-air,supine,"foot-end, oblique",wound,high
+104,DVIDS,https://www.dvidshub.net/image/5608349/global-medic,supine,oblique,wound/not-testable mix,high
+105,DVIDS,https://www.dvidshub.net/image/6783996/modern-technology-aids-medics-preparing-real-world-scenarios,supine,"overhead, oblique",wound/not-testable mix,high
+106,DVIDS,https://www.dvidshub.net/image/6872503/best-medic-competition-2021,supine,oblique,wound,high
+107,DVIDS,https://www.dvidshub.net/image/7012443/iowa-soldier-conducts-combat-medic-training-camp-dodge,supine,"side, oblique",wound/not-testable mix,high
+108,DVIDS,https://www.dvidshub.net/image/7336109/confidence-our-leaders-division-leaders-academy,supine,"oblique, elevated",not testable,high
+109,DVIDS,https://www.dvidshub.net/image/8050879/futures-command-best-squad-completes-medical-lanes-testing-hraps-featured-tech-during-army-wide-competition,unspecified,oblique,not testable,high
+110,DVIDS,https://www.dvidshub.net/image/8387284/v-corps-best-squad-competition-cbrn-lane,supine,"oblique, wide",wound/not-testable mix,high
+111,DVIDS,https://www.dvidshub.net/image/8408485/xviii-airborne-corps-best-squad-competition,supine,"head-end, oblique",wound/not-testable mix,high
+112,DVIDS,https://www.dvidshub.net/image/9335855/veterinary-readiness-activity-soldier-year-mstc,supine,oblique,wound/not-testable mix,high
+113,DVIDS,https://www.dvidshub.net/image/9335860/veterinary-readiness-activity-soldier-year-mstc,supine,"oblique, wide",wound,high
+114,DVIDS,https://www.dvidshub.net/image/9335863/veterinary-readiness-activity-soldier-year-mstc,supine,"oblique, wide",wound,high
+115,DVIDS,https://www.dvidshub.net/image/9335864/veterinary-readiness-activity-soldier-year-mstc,supine,"foot-end, oblique, low angle",wound/not-testable mix,high
+116,DVIDS,https://www.dvidshub.net/image/9335866/veterinary-readiness-activity-soldier-year-mstc,supine,oblique,wound/not-testable mix,high
+117,DVIDS,https://www.dvidshub.net/image/9335867/veterinary-readiness-activity-soldier-year-mstc,supine,"head-end, oblique, elevated",wound,high
+118,DVIDS,https://www.dvidshub.net/image/9335869/veterinary-readiness-activity-soldier-year-mstc,supine,"foot-end, oblique, elevated",unclear,high
+119,DVIDS,https://www.dvidshub.net/image/9335874/veterinary-readiness-activity-soldier-year-mstc,supine,"foot-end, oblique",wound,high
+120,DVIDS,https://www.dvidshub.net/image/9615620/2026-ohio-army-national-guard-state-best-warrior-competition,supine,"foot-end, oblique, elevated",wound,high
+121,DVIDS,https://www.dvidshub.net/image/9668454/best-squad-competition-challenges-eighth-army-soldiers-medical-lane-event,supine,oblique,not testable,high
+122,DVIDS,https://www.dvidshub.net/image/4316820/guardian-response-18,unspecified,wide,unclear,high
+123,DVIDS,https://www.dvidshub.net/image/5880418/one-call-away-medical-teams-answer-call-during-emergency-deployment-readiness-exercise,unspecified,oblique (unspecified),amputation,high
+124,DVIDS,https://www.dvidshub.net/image/9883808/104th-fighter-wing-boosts-medical-readiness-through-wings-first-dual-tier-tactical-combat-casualty-care-training,unspecified,oblique (unspecified),amputation,
+125,DVIDS,https://www.dvidshub.net/image/9960006/us-air-force-medical-students-undergo-expeditionary-medical-readiness-course-joint-base-san-antonio-camp-bullis,supine,wide,unclear,
+126,DVIDS,https://www.dvidshub.net/image/9960014/us-air-force-medical-students-undergo-expeditionary-medical-readiness-course-joint-base-san-antonio-camp-bullis,unspecified,oblique (unspecified),wound/not-testable mix,
+127,DVIDS,https://www.dvidshub.net/image/6137121/keesler-improves-training-medics,unspecified,oblique (unspecified),wound,high
+128,DVIDS,https://www.dvidshub.net/image/6226673/task-force-maui-conduct-tc3-training-during-covid-19-operations,unspecified,wide,unclear,high
+129,DVIDS,https://www.dvidshub.net/image/3013315/combat-medics-complete-emt-refresher-course,supine,oblique (unspecified),wound/not-testable mix,high
+130,DVIDS,https://www.dvidshub.net/image/5636907/joint-chiefs-chairmans-senior-enlisted-advisor-visits-metc,unspecified,oblique (unspecified),wound,medium
+131,DVIDS,https://www.dvidshub.net/image/6226676/task-force-maui-conduct-tc3-training-during-covid-19-operations,unspecified,oblique,not testable,high
+132,DVIDS,https://www.dvidshub.net/image/6448257/female-trauma-mannequin-developmental-test,unspecified,oblique (unspecified),wound/not-testable mix,medium
+133,DVIDS,https://www.dvidshub.net/image/9335854/veterinary-readiness-activity-soldier-year-mstc,supine,oblique (unspecified),wound,high
+134,DVIDS,https://www.dvidshub.net/image/2419112/iraqi-combat-medics-course-demonstrates-skills-during-their-graduation,unspecified,oblique (unspecified),wound/not-testable mix,medium
+135,DVIDS,https://www.dvidshub.net/image/3366140/squad-overmatch-five-tier-course-saving-lives,unspecified,oblique (unspecified),amputation,high
+136,DVIDS,https://www.dvidshub.net/image/5753178/upgraded-medical-mannequins-enhance-realistic-rugged-training,unspecified,oblique (unspecified),not testable,high
+137,DVIDS,https://www.dvidshub.net/image/6226672/task-force-maui-conduct-tc3-training-during-covid-19-operations,unspecified,oblique (unspecified),not testable,
+138,DVIDS,https://www.dvidshub.net/image/6226678/task-force-maui-conduct-tc3-training-during-covid-19-operations,unspecified,oblique (unspecified),not testable,
+139,DVIDS,https://www.dvidshub.net/image/6365214/usareur-fall-efmb-2020,unspecified,oblique (unspecified),not testable,medium
+140,DVIDS,https://www.dvidshub.net/image/7240637/macdill-airmen-enhance-readiness-with-trauma-care-course,supine,"low angle, wide",wound,high
+141,DVIDS,https://www.dvidshub.net/image/7240640/macdill-airmen-enhance-readiness-with-trauma-care-course,unspecified,oblique (unspecified),wound/not-testable mix,high
+142,DVIDS,https://www.dvidshub.net/image/9276816/mission-ready-yokota-airmen-participate-wing-training-day,unspecified,oblique (unspecified),wound,high
+143,DVIDS,https://www.dvidshub.net/image/9687224/luke-airmen-celebrate-nurse-tech-week,unspecified,oblique (unspecified),amputation,high
+144,DVIDS,https://www.dvidshub.net/image/9767312/nbhc-belle-chasse-sailors-participate-tccc-training-april-30-2026,unspecified,oblique (unspecified),not testable,high
+145,DVIDS,https://www.dvidshub.net/image/9960016/us-air-force-medical-students-undergo-expeditionary-medical-readiness-course-joint-base-san-antonio-camp-bullis,unspecified,low angle,not testable,high
+146,DVIDS,https://www.dvidshub.net/image/3013329/combat-medics-complete-emt-refresher-course,semi-seated,oblique (unspecified),unclear,high
+147,DVIDS,https://www.dvidshub.net/image/6231682/best-medic-competition,unspecified,oblique (unspecified),not testable,high
+148,DVIDS,https://www.dvidshub.net/image/6625499/behind-moulage,unspecified,oblique (unspecified),unclear,high
+149,DVIDS,https://www.dvidshub.net/image/7189985/tccc-arms-airmen-with-tools-save-life,unspecified,oblique (unspecified),unclear,high
+150,DVIDS,https://www.dvidshub.net/image/9617777/practicing-spiritual-triage-9th-msc-chaplains-participate-mstc-lanes,unspecified,oblique (unspecified),not testable,high
+151,DVIDS,https://www.dvidshub.net/image/9617906/practicing-spiritual-triage-9th-msc-chaplains-participate-mstc-lanes,unspecified,oblique (unspecified),not testable,high
+152,DVIDS,https://www.dvidshub.net/image/2230284/39th-signal-commanders-prime-time-training-combat-life-saver,unspecified,wide,unclear,
+153,DVIDS,https://www.dvidshub.net/image/3013305/combat-medics-complete-emt-refresher-course,unspecified,oblique (unspecified),wound/not-testable mix,high
+154,DVIDS,https://www.dvidshub.net/image/3683362/patriot-warrior-2017,unspecified,"overhead, wide",unclear,high
+155,DVIDS,https://www.dvidshub.net/image/6122175/art-moulage-metc-combat-medic-manikins-rock-realistic-wounds,supine,"oblique, elevated",unclear,high
+156,DVIDS,https://www.dvidshub.net/image/6624402/imc-marines-continue-capstone-exercise,unspecified,oblique (unspecified),amputation,high
+157,DVIDS,https://www.dvidshub.net/image/7015854/15th-mdg-647th-sfs-conduct-first-joint-training,unspecified,oblique (unspecified),unclear,high
+158,DVIDS,https://www.dvidshub.net/image/7240639/macdill-airmen-enhance-readiness-with-trauma-care-course,unspecified,oblique (unspecified),unclear,high
+159,DVIDS,https://www.dvidshub.net/image/7959270/j6-medical-simulation-team,supine,oblique,unclear,high
+160,DVIDS,https://www.dvidshub.net/image/8003766/fasteur-trauma-lane-training-with-mcesg-8,supine,wide,unclear,high
+161,DVIDS,https://www.dvidshub.net/image/8672027/army-reserve-csm-betty-touts-global-medic-exercise-ar-medcom-visit,unspecified,wide,unclear,high
+162,DVIDS,https://www.dvidshub.net/image/8792758/us-army-fort-cavazos-medics-prepare-testing-new-female-trauma-manikin,unspecified,oblique (unspecified),not testable,high
+163,DVIDS,https://www.dvidshub.net/image/9106106/built-fight-corpsmen-excel-trauma-exercise-rotas-corpsman-cup,unspecified,oblique (unspecified),not testable,high
+164,DVIDS,https://www.dvidshub.net/image/9672532/nmrtc-pensacola-held-tactical-combat-casualty-care-tccc-final-exercise-finex-naval-hospital-pensacola,unspecified,oblique (unspecified),not testable,high
+165,DVIDS,https://www.dvidshub.net/image/9672563/nmrtc-pensacola-held-tactical-combat-casualty-care-tccc-final-exercise-finex-naval-hospital-pensacola,unspecified,oblique (unspecified),not testable,high
+166,DVIDS,https://www.dvidshub.net/image/9753680/operation-sentinel-justice-enhances-medical-training-realism-through-moulage-preparation-camp-shelby,unspecified,wide,unclear,high
+167,DVIDS,https://www.dvidshub.net/image/9767316/nbhc-belle-chasse-sailors-participate-tccc-training-april-30-2026,unspecified,oblique (unspecified),not testable,high
+168,DVIDS,https://www.dvidshub.net/image/9874954/maineiacs-conduct-tccc-tier-3,unspecified,oblique (unspecified),wound/not-testable mix,high
+169,DVIDS,https://www.dvidshub.net/image/9874981/maineiacs-conduct-tccc-tier-3,unspecified,low angle,not testable,high
+170,DVIDS,https://www.dvidshub.net/image/988644/moulage-dressing-makes-training-more-realistic,unspecified,oblique (unspecified),unclear,high
+171,DVIDS,https://www.dvidshub.net/image/1726927/trauma-junkies-going-beyond-combat-medical-care,unspecified,oblique (unspecified),unclear,high
+172,DVIDS,https://www.dvidshub.net/image/359159/usd-c-soldiers-learn-combat-life-saving-skills,unspecified,oblique (unspecified),unclear,medium
+173,DVIDS,https://www.dvidshub.net/image/6541673/buckley-medics-participate-tactical-combat-casualty-care-exercise,unspecified,oblique (unspecified),not testable,high
+174,DVIDS,https://www.dvidshub.net/image/6624839/guardian-response-21,unspecified,oblique (unspecified),not testable,high
+175,DVIDS,https://www.dvidshub.net/image/7518207/operation-firebreak-sharpening-scalpel,unspecified,oblique (unspecified),not testable,high
+176,DVIDS,https://www.dvidshub.net/image/7518223/operation-firebreak-sharpening-scalpel,unspecified,oblique (unspecified),not testable,high
+177,DVIDS,https://www.dvidshub.net/image/7549636/operation-firebreak-sharpening-scalpel,unspecified,oblique (unspecified),unclear,high
+178,DVIDS,https://www.dvidshub.net/image/7549637/operation-firebreak-sharpening-scalpel,unspecified,oblique (unspecified),amputation,high
+179,DVIDS,https://www.dvidshub.net/image/6401833/first-aid-training-using-new-tommannekin,unspecified,oblique (unspecified),wound/not-testable mix,high
+180,DVIDS,https://www.dvidshub.net/image/6401835/first-aid-training-using-new-tommannekin,unspecified,oblique (unspecified),unclear,high
+181,DVIDS,https://www.dvidshub.net/image/6401836/first-aid-training-using-new-tommannekin,unspecified,oblique,not testable,high
+182,DVIDS,https://www.dvidshub.net/image/6401837/first-aid-training-using-new-tommannekin,unspecified,oblique (unspecified),not testable,high
+183,DVIDS,https://www.dvidshub.net/image/6401838/first-aid-training-using-new-tommannekin,unspecified,oblique (unspecified),not testable,high
+184,DVIDS,https://www.dvidshub.net/image/6401839/first-aid-training-using-new-tommannekin,unspecified,oblique (unspecified),not testable,high
+185,DVIDS,https://www.dvidshub.net/image/7360840/usarmy-europe-aftica-best-squad-competition-medical-lanes,supine,oblique (unspecified),not testable,medium
+186,DVIDS,https://www.dvidshub.net/image/7360861/usarmy-europe-aftica-best-squad-competition-medical-lanes,supine,oblique (unspecified),wound/not-testable mix,medium
+187,DVIDS,https://www.dvidshub.net/image/59111/combat-casualty-treatment-course,unspecified,"oblique, low angle",amputation,medium
+188,DVIDS,https://www.dvidshub.net/image/747045/joint-readiness-training-center-13-01,unspecified,oblique (unspecified),wound/not-testable mix,medium
+189,DVIDS,https://www.dvidshub.net/image/747046/joint-readiness-training-center-13-01,unspecified,oblique (unspecified),wound,medium
+190,DVIDS,https://www.dvidshub.net/image/924246/1st-acb-medics-undergo-trauma-training,unspecified,oblique (unspecified),wound,medium
+191,DVIDS,https://www.dvidshub.net/image/1051706/collective-protection-exercise,unspecified,oblique (unspecified),amputation,medium
+192,DVIDS,https://www.dvidshub.net/image/1270636/116th-ces-trains-deployment-operations-silver-flag-2014,unspecified,oblique (unspecified),wound/not-testable mix,medium
+193,DVIDS,https://www.dvidshub.net/image/1761595/mdarng-aviation-unit-facilitates-casualty-care-exercise,supine,oblique (unspecified),wound/not-testable mix,medium
+194,DVIDS,https://www.dvidshub.net/image/2687634/2nd-medical-battalion-holds-hsap-training,unspecified,oblique (unspecified),wound/not-testable mix,medium
+195,DVIDS,https://www.dvidshub.net/image/6652796/usarak-best-warrior,unspecified,oblique,wound,high
+196,DVIDS,https://www.dvidshub.net/image/8029206/15th-meu-trains-worst-mass-casualty-scenario,unspecified,oblique (unspecified),amputation,medium
+197,DVIDS,https://www.dvidshub.net/image/9668452/best-squad-competition-challenges-eighth-army-soldiers-medical-lane-event,unspecified,oblique (unspecified),not testable,high
+198,DVIDS,https://www.dvidshub.net/image/9883709/pershing-cup-armys-best-oc-t-competition-tactical-medical-lane,unspecified,oblique (unspecified),not testable,high
+199,Wikimedia Commons,https://commons.wikimedia.org/wiki/File:181003-N-RM689-0092_(44399442434).jpg,supine,"supine in vehicle wreckage, oblique",wound,medium
+200,Wikimedia Commons,https://commons.wikimedia.org/wiki/File:181003-N-RM689-0098_(44399441854).jpg,supine,"supine in wreckage, oblique",amputation,medium
