@@ -100,6 +100,32 @@ POSE_REUSE = os.environ.get('BT1_POSE_REUSE', '0') == '1'
 COCO_FLIP = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]
 
 
+PICK = os.environ.get('BT1_PICK', 'largest')      # 'lying': choose the casualty among several people (BT-2b)
+
+
+def pick_casualty(boxes, k, s, shape):
+    """Index of the person most likely to be the casualty when several are detected (medics, bystanders).
+    Real training photos show 3 people per photo on median (Real Fidelity Gap v1.0); the engine used to take the
+    largest box. Score, all terms mirror-invariant so both passes pick the same person:
+      size (box area over the largest), centrality, leg extension (ankle-hip over hip-shoulder distance: lying or
+      standing about 1.5 to 2, kneeling or crouching under 1), pose confidence, minus uprightness (torso pointing up
+      the image, as kneeling and standing medics do in oblique photos).
+    Weights are set by hand, not fitted; validated on generator v3 scenes with bystanders."""
+    H, W = shape[:2]
+    b = np.asarray(boxes, float)[:, :4]
+    area = (b[:, 2] - b[:, 0]) * (b[:, 3] - b[:, 1]); area = area / max(area.max(), 1e-6)
+    cx, cy = (b[:, 0] + b[:, 2]) / 2 / W - 0.5, (b[:, 1] + b[:, 3]) / 2 / H - 0.5
+    cen = 1 - np.clip(np.sqrt(cx ** 2 + cy ** 2) / 0.7071, 0, 1)
+    k = np.asarray(k, float); s = np.asarray(s, float)
+    sh, hp, an = k[:, 5:7].mean(1), k[:, 11:13].mean(1), k[:, 15:17].mean(1)
+    torso = np.linalg.norm(sh - hp, axis=1) + 1e-6
+    ext = np.clip(np.linalg.norm(an - hp, axis=1) / torso / 1.5, 0, 1)
+    up = np.clip(-(sh - hp)[:, 1] / torso, 0, 1)
+    conf = s[:, :17].mean(1)
+    score = area + 0.7 * cen + 0.8 * ext + 0.3 * conf - 0.3 * up
+    return int(np.argmax(score))
+
+
 def _amp():
     import torch, contextlib
     if AMP and torch.cuda.is_available():
@@ -181,6 +207,9 @@ class BT1Engine:
             boxes, k, s = det_pose
         self._last_dp = (boxes, k, s)
         kxy = None
+        pick = pick_casualty(boxes, k, s, img.shape) if PICK == 'lying' and len(boxes) > 1 and len(k) == len(boxes) else None
+        if pick is not None:                          # one person for both the pose frame and the crop
+            boxes = [boxes[pick]]; k = np.asarray(k)[pick:pick + 1]; s = np.asarray(s)[pick:pick + 1]
         if len(k):
             i = int(np.argmax(s[:, :17].mean(1))); kp = k[i]; kxy = kp[:17]
             axis = TE.unit((kp[5] + kp[6]) / 2 - (kp[11] + kp[12]) / 2); pp = TE.perp(axis)

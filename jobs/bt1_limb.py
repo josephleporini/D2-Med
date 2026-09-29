@@ -27,6 +27,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE); sys.path.insert(0, os.path.join(HERE, '..', 'gen'))
 import parts as PT
 from seg_features import square_crop
+from photoaug import photo_aug
+AUG_PHOTO = os.environ.get('AUG_PHOTO', '0') == '1'           # BT-2b photometric and background augmentation
+AUG_PHOTO_P = float(os.environ.get('AUG_PHOTO_P', '0.8'))
 from seg_train_e2e import SegModel, MEAN, STD
 from sidehead2 import SideModel, M
 
@@ -85,6 +88,7 @@ class LimbSet(torch.utils.data.Dataset):
         pad = rng.uniform(0.10, 0.25) if self.train else 0.15
         crop, (X1, Y1, S) = square_crop(img, box, pad)
         lab, _ = square_crop(np.stack([seg, side, am], -1), box, pad)
+        bgfull = cv2.resize((lab[..., 0] == 0).astype(np.uint8), (self.size, self.size), interpolation=cv2.INTER_NEAREST) > 0
         crop = cv2.resize(crop, (self.size, self.size)); L = self.size // 4
         lab = cv2.resize(lab, (L, L), interpolation=cv2.INTER_NEAREST)
         sl, sd, ab = lab[..., 0], lab[..., 1], lab[..., 2]
@@ -109,6 +113,8 @@ class LimbSet(torch.utils.data.Dataset):
             if rng.random() < 0.3:
                 c = c + rng.normal(0, rng.uniform(2, 8), c.shape)
             crop = np.clip(c, 0, 255).astype(np.uint8)
+            if AUG_PHOTO and rng.random() < AUG_PHOTO_P:                        # BT-2b: toward real photographs
+                crop = photo_aug(crop, bgfull, rng)
         x = (torch.from_numpy(crop).permute(2, 0, 1).float() / 255 - MEAN) / STD
         return (x, torch.from_numpy(sl.astype(np.int64)), torch.from_numpy(sd.astype(np.int64)), torch.from_numpy(amodal),
                 torch.from_numpy(heat), torch.from_numpy(hm), torch.from_numpy(cause), torch.tensor(float(am_ok)))
