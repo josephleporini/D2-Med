@@ -10,6 +10,7 @@ export PATH=$HOME/.local/bin:$PATH; command -v uv >/dev/null || pip install -q u
 [ -f $A/makehuman/data/3dobjs/base.obj ] || { echo "assets missing; run gpu_timing.sh first"; exit 3; }
 ln -sfn /workspace/probeB/assets $R/assets
 if [ -d $DD/.git ]; then git -C $DD remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/josephleporini/DDData.git; git -C $DD pull -q --rebase origin main
+  git -C $DD sparse-checkout add ${SPLITS:-train5 test5 challenge5}   # new splits must be inside the sparse set to be added
 else git clone -q --filter=blob:none --sparse https://x-access-token:${GH_TOKEN}@github.com/josephleporini/DDData.git $DD
   git -C $DD sparse-checkout set ${SPLITS:-train5 test5 challenge5}; fi
 nvidia-smi --query-gpu=name --format=csv,noheader; nproc

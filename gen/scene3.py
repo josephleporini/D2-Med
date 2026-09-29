@@ -61,9 +61,12 @@ def setup3(prm, rng):
     skin = mk.plastic_material('skin', S.SKIN_TONES[prm['skin']])
     ob.data.materials.append(skin)
     wounds = FD.add_wounds(ob, arm, fsite, fpart, prm, rng)
+    if prm.get('soak'):
+        prm['_wound_meta'] = wounds                          # v3: exposed-wound centers for blood-soaked cloth
     if prm.get('blood_smear'):
         prm['_smear'] = FD.add_blood_smear(ob, arm, fsite, fpart, prm, rng)   # confuser; labels unchanged (not a wound)
     shells = FD.add_garments(ob, arm, fsite, fpart, prm, rng, LABEL_ID) + FD.add_tourniquets(ob, arm, fsite, fpart, prm, rng, LABEL_ID)
+    prm.pop('_wound_meta', None)
     bpy.context.view_layer.update()
     dg = bpy.context.evaluated_depsgraph_get()
     ev = ob.evaluated_get(dg)
@@ -91,6 +94,12 @@ def setup3(prm, rng):
     occ_mat = S.noise_material('occ', (0.25, 0.27, 0.18), (0.16, 0.18, 0.11), 12)
     for o in occ:
         o.data.materials.append(occ_mat)
+    decals = []
+    if prm.get('gen') == 'v3':                               # v3 scene content (Real Fidelity Gap v1.0); absent in v1/v2
+        import v3extras as V3
+        occ = occ + V3.add_bystanders(prm, rng, P) + V3.add_red_gear(prm, rng, P)
+        decals = V3.add_blood_pools(prm, rng, lx)
+        V3.apply_view(sc, prm)
     sun = bpy.data.objects.new('sun', bpy.data.lights.new('sun', 'SUN')); sc.collection.objects.link(sun)
     sun.rotation_euler = (math.radians(prm['sun_el']), 0, math.radians(prm['sun_az']))
     sun.data.energy = {'indoor_flat': 1.5, 'outdoor_sun': 4.0, 'low_light': 0.9}[prm['lighting']]
@@ -99,6 +108,8 @@ def setup3(prm, rng):
     bg = sc.world.node_tree.nodes['Background']
     bg.inputs['Strength'].default_value = {'indoor_flat': 0.9, 'outdoor_sun': 0.6, 'low_light': 0.15}[prm['lighting']]
     bg.inputs['Color'].default_value = (0.75, 0.8, 0.9, 1)
+    if prm.get('light_boost'):                               # v3: harder light, darker sky -> more contrast
+        sun.data.energy *= prm['light_boost']; bg.inputs['Strength'].default_value /= prm['light_boost']
     cd = bpy.data.cameras.new('cam'); cd.lens = 35; cd.sensor_width = 36
     cam = bpy.data.objects.new('cam', cd); sc.collection.objects.link(cam); sc.camera = cam
     # label objects: part classes and sites, from the posed body and each posed shell
@@ -112,17 +123,22 @@ def setup3(prm, rng):
         part_objs += _split(posed, fp, PART3_CLASSES, PART3_COLORS, f'p3_{n}_', sc)
         site_objs += _split(posed, fs, SITE_NAMES, S.ID_COLORS, f'id_{n}_', sc)
     return dict(sc=sc, ob=ob, shells=shells, P=P, floor=floor, occ=occ, cam=cam, part_objs=part_objs,
-                site_objs=site_objs, wounds=wounds, fpart=fpart, fsite=fsite, arm=arm)
+                site_objs=site_objs, wounds=wounds, fpart=fpart, fsite=fsite, arm=arm, decals=decals)
 
 
 def _id_pass(ctx, show, path, occ_color, res=S.ID_RES):
     sc = ctx['sc']
-    saved = [(o, list(o.data.materials)) for o in [ctx['floor']] + ctx['occ']]
+    dec = ctx.get('decals', [])
+    saved = [(o, list(o.data.materials)) for o in [ctx['floor']] + ctx['occ'] + dec]
     fm = bpy.data.materials.new('idFLOOR'); fm.diffuse_color = (*S.ID_COLORS['FLOOR'], 1)
     om = bpy.data.materials.new('idOCC'); om.diffuse_color = (*occ_color, 1)
-    ctx['floor'].data.materials.clear(); ctx['floor'].data.materials.append(fm)
+    for o in [ctx['floor']] + dec:                           # blood pools are floor in the truth
+        o.data.materials.clear(); o.data.materials.append(fm)
     for o in ctx['occ']:
-        o.data.materials.clear(); o.data.materials.append(om)
+        n = max(1, len(o.data.materials))                    # bystanders carry two slots (uniform, skin)
+        o.data.materials.clear()
+        for _ in range(n):
+            o.data.materials.append(om)
     for o in [ctx['ob']] + ctx['shells']:
         o.hide_render = True
     for o in show:

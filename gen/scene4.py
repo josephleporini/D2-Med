@@ -100,7 +100,7 @@ def main_full(prm_path, out_dir, rgb=True):
     # overscan alone renders (no floor, no occluders): full outline per site, and full stump per side
     t = time.time()
     cd = cam.data; cd.sensor_width = 36 * S.OVERSCAN
-    hide = [ctx['floor']] + ctx['occ']
+    hide = [ctx['floor']] + ctx['occ'] + ctx.get('decals', [])
     for o in hide:
         o.hide_render = True
     OW, OH = W * S.OVERSCAN, H * S.OVERSCAN; y0, x0 = (OH - H) // 2, (OW - W) // 2
@@ -148,7 +148,7 @@ def main_full(prm_path, out_dir, rgb=True):
     tq_vis = {s: int((mask(Ap, S3.PART3_COLORS['TQ']) & site_vis[s]).sum()) for s in mk.SITES}
 
     # joints and terminal points (posed skeleton projected through the scene camera)
-    arm = [o for o in bpy.data.objects if o.type == 'ARMATURE'][0]
+    arm = ctx['arm']                                  # the casualty (v3 scenes also hold bystander rigs)
     bpy.context.view_layer.update()
     joints, terminal = {}, {}
     ev = ctx['ob'].evaluated_get(bpy.context.evaluated_depsgraph_get())

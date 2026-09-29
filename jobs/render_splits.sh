@@ -7,7 +7,8 @@
 W=$1; DD=$2; BPY=$3; G=$(cd "$(dirname "$0")/../gen" && pwd); B=40; J=${JOBS:-1}
 export GEN_COMMIT=$(git -C "$G/.." rev-parse --short HEAD) G BPY
 declare -A SPEC=([dev5]="480 50000" [train5]="600 70000" [test5]="480 60000" [challenge5]="240 80000 challenge"
-                 [train6]="600 90000 bt2" [dev6]="240 91000 bt2")   # BT-2 mix: gen/sample_batch4.py bt2_mix
+                 [train6]="600 90000 bt2" [dev6]="240 91000 bt2"      # BT-2 mix: gen/sample_batch4.py bt2_mix
+                 [train7]="800 92000 bt3" [dev7]="240 93000 bt3")    # BT-2b mix (generator v3): bt3_mix
 render_one() {  # $1 = params path, $2 = out dir
   id=$(basename "$1" _params.json)
   [ -f "$2/${id}_sidecar.json" ] && return 0

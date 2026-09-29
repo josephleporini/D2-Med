@@ -137,19 +137,23 @@ def add_wounds(ob, arm, fsite, fpart, prm, rng):
         c0 = centres[cand[int(rng.integers(len(cand)))]]
         seg = 0 if (c0 - pts[0]).length < (c0 - pts[1]).length else 1
         axis = (pts[seg + 1] - pts[seg]).normalized()
-        v2 = prm.get('wound_style') == 'v2'
+        v3 = prm.get('wound_style') == 'v3'
+        v2 = prm.get('wound_style') == 'v2' or v3
         if kind == 'laceration' or kind == 'open_fracture':
-            L, r = (rng.uniform(0.04, 0.20), rng.uniform(0.010, 0.030)) if v2 else (rng.uniform(0.08, 0.16), rng.uniform(0.018, 0.028))
+            if v3:
+                L, r = rng.uniform(0.08, 0.26), rng.uniform(0.018, 0.040)
+            else:
+                L, r = (rng.uniform(0.04, 0.20), rng.uniform(0.010, 0.030)) if v2 else (rng.uniform(0.08, 0.16), rng.uniform(0.018, 0.028))
             a, b = c0 - axis * L / 2, c0 + axis * L / 2
             sel = [i for i in cand if _seg_dist(centres[i], a, b)[0] < r]
         elif kind == 'penetrating':
-            r = rng.uniform(0.010, 0.034) if v2 else rng.uniform(0.020, 0.032)
+            r = rng.uniform(0.020, 0.050) if v3 else (rng.uniform(0.010, 0.034) if v2 else rng.uniform(0.020, 0.032))
             sel = [i for i in cand if (centres[i] - c0).length < r]
         else:   # burn: irregular patch = union of a few discs
             sel = set()
             for _ in range(int(rng.integers(3, 6))):
                 cc = centres[cand[int(rng.integers(len(cand)))]] if rng.random() < 0.3 else c0 + Vector(rng.normal(0, 0.03, 3))
-                rr = rng.uniform(0.03, 0.09) if v2 else rng.uniform(0.05, 0.09)
+                rr = rng.uniform(0.05, 0.11) if v3 else (rng.uniform(0.03, 0.09) if v2 else rng.uniform(0.05, 0.09))
                 sel |= {i for i in cand if (centres[i] - cc).length < rr}
             sel = sorted(sel)
         if len(sel) < 6:            # coarse mesh: guarantee a visible patch (nearest faces to the centre)
@@ -160,10 +164,12 @@ def add_wounds(ob, arm, fsite, fpart, prm, rng):
             WOUND_UNDER[i] = fpart[i]                    # the part under the wound, for a garment that covers it
             fpart[i] = site + '_wound'
         out[site] = {'type': kind, 'n_faces': len(sel)}
-        if v2 and rng.random() < 0.5:                    # blood halo around the wound, limb label kept
+        if v3:
+            out[site]['center'] = [float(x) for x in c0]
+        if v2 and rng.random() < (0.8 if v3 else 0.5):   # blood halo around the wound, limb label kept
             ext = max(((centres[i] - c0).length for i in sel), default=0.02)
             ring = [i for i in cand if i not in set(sel)]
-            out[site]['halo_faces'] = _stain(ob, ring, centres, c0, 0.0, ext + rng.uniform(0.02, 0.06), rng)
+            out[site]['halo_faces'] = _stain(ob, ring, centres, c0, 0.0, ext + (rng.uniform(0.03, 0.10) if v3 else rng.uniform(0.02, 0.06)), rng)
     return out
 
 
@@ -248,11 +254,37 @@ def add_garments(ob, arm, fsite, fpart, prm, rng, label_id):
         if g == 'boots':
             mat = _noise_mat('boots', (0.05, 0.04, 0.03), (0.12, 0.10, 0.07), 60, 0.5)
             off = rng.uniform(0.010, 0.016)
+        elif prm.get('camo'):                              # v3: camouflage uniform
+            import v3extras
+            mat = v3extras.camo_material('cloth_' + g, rng)
+            off = rng.uniform(0.005, 0.012)
         else:
             mat = _noise_mat('cloth_' + g, col[0], col[1], rng.uniform(8, 30), 0.9, 0.2)
             off = rng.uniform(0.005, 0.012)
-        out.append(_shell(ob, set(faces), labels, off, mat, 'garment_' + g, site_ids))
+        sh = _shell(ob, set(faces), labels, off, mat, 'garment_' + g, site_ids)
+        if prm.get('soak') and g != 'boots':
+            exp = [w['center'] for st, w in (prm.get('_wound_meta') or {}).items() if 'center' in w and not (
+                wound_hidden[st[0]] and (top if st[1] == 'U' else bottom) != 'none')]
+            _soak(sh, exp, prm, rng)
+        out.append(sh)
     return out
+
+
+def _soak(g, centers, prm, rng):
+    """v3: blood-soaked cloth at the cut edge around an EXPOSED wound (cloth next to a wound that is already
+    visible, so the site label is wound either way; a soaked sleeve over a hidden wound is not drawn, because its
+    label under the 28 Sep rule would be no_injury). Labels unchanged."""
+    cs = [Vector(c) for c in centers]
+    if not cs:
+        return
+    rad = [rng.uniform(0.04, 0.12) for _ in cs]
+    m = blood_material(rng)
+    g.data.materials.append(m)
+    n = 0
+    for p in g.data.polygons:
+        if any((p.center - c).length < r for c, r in zip(cs, rad)):
+            p.material_index = 1; n += 1
+    prm['_soak_faces'] = prm.get('_soak_faces', 0) + n
 
 
 TQ_BANDS = {}

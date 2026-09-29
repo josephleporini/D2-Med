@@ -206,6 +206,8 @@ def set_id_look(sc):
     sc.display.shading.color_type = 'MATERIAL'
     sc.display.render_aa = 'OFF'
     sc.view_settings.view_transform = 'Standard'
+    sc.view_settings.look = 'None'                           # v3 may set a contrast look and exposure for the RGB pass
+    sc.view_settings.exposure = 0.0
     sc.render.dither_intensity = 0
     sc.render.film_transparent = False
     sc.world.color = (0, 0, 0)
