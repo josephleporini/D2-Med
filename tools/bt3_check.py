@@ -100,5 +100,30 @@ def score(pred, rows, d5, dec, out):
     json.dump(res, open(out, 'w'), indent=1); print('SCORE', json.dumps(res))
 
 
+def compare(ref_rows, var_rows, d5, out):
+    """Speed variant vs reference on the same images: class agreement, largest probability difference, accuracy of
+    each against the dev5 truth, and time per image with its breakdown."""
+    T = truth(d5)
+    def load(f):
+        R = {}
+        for l in open(f):
+            r = json.loads(l)
+            if r.get('image_id') and r.get('p'):
+                R[os.path.splitext(r['image_id'])[0]] = r
+        return R
+    A, B = load(ref_rows), load(var_rows)
+    ids = sorted(set(A) & set(B))
+    pa = np.array([A[i]['p'] for i in ids]); pb = np.array([B[i]['p'] for i in ids]); y = np.array([T[i] for i in ids])
+    agree = float((pa.argmax(2) == pb.argmax(2)).mean())
+    def bd(R):
+        ks = [k for k in R[ids[0]]['t']]
+        return {k: round(float(np.mean([R[i]['t'][k] + (R[i].get('t_flip') or {}).get(k, 0) for i in ids])), 3) for k in ks}
+    res = dict(images=len(ids), class_agreement=round(agree, 4), max_prob_diff=round(float(np.abs(pa - pb).max()), 4),
+               acc_ref=round(float((pa.argmax(2) == y).mean()), 4), acc_var=round(float((pb.argmax(2) == y).mean()), 4),
+               s_ref=round(float(np.mean([A[i]['s'] for i in ids])), 3), s_var=round(float(np.mean([B[i]['s'] for i in ids])), 3),
+               breakdown_ref=bd(A), breakdown_var=bd(B))
+    json.dump(res, open(out, 'w'), indent=1); print('COMPARE', os.path.basename(var_rows), json.dumps(res))
+
+
 if __name__ == '__main__':
-    {'parity': parity, 'score': score}[sys.argv[1]](*sys.argv[2:])
+    {'parity': parity, 'score': score, 'compare': compare}[sys.argv[1]](*sys.argv[2:])

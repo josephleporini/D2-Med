@@ -12,12 +12,19 @@ Engine contract (d2-blockT d2qual/engines/structured.py):
 
 Env: CAP_THREADS (torch/OpenCV/ORT threads, default 8, the APL CPU cap), ORT_GPU=1 (det/pose on CUDA if onnxruntime-gpu
 is installed; default CPU, which is how the reference rows were made).
+BT-3 speed switches (M3-08), each measured for parity in jobs/bt3_a40.sh before it becomes a default:
+  BT1_FAST=1 (default)   exact CPU speed-ups, gen/fastops.py (bit-identical; tests/test_fastops.py)
+  BT1_BATCH=1 (default)  per-limb SAM encodings in one batch (parity held, BT-3 speed note 28 Sep)
+  BT1_AMP=1              bfloat16 autocast for the SAM encoders on CUDA (not exact: parity measured)
+  BT1_POSE_REUSE=1       the mirrored pass reuses the original pass's person box and keypoints, mirrored, instead of
+                         running detection and pose again (not exact: parity measured)
 """
 import os, sys, json, time
 N_THR = int(os.environ.get('CAP_THREADS', '8'))
 for _k in ('OMP_NUM_THREADS', 'MKL_NUM_THREADS', 'OPENBLAS_NUM_THREADS'):
     os.environ.setdefault(_k, str(N_THR))
 import numpy as np
+from scipy import ndimage
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SITES = ['LUE', 'RUE', 'LLE', 'RLE']
@@ -48,7 +55,6 @@ def site_rows_batched(m, img, cm, names, ext, stc, wm, tq, chunk=8):
     """side_kp.site_rows with the SAM 2.1 crop encodings done in one batch (BT-3 speed). Same crops, same EndNet heads;
     only the encoder call is batched (set_image_batch), so outputs match the serial path up to float rounding."""
     import torch, test_a_masks as TA, test_e as TE, lend as LE
-    from scipy import ndimage
     from side_kp import limb_window
     ix = {n: i for i, n in enumerate(names)}
     an = TA.analyse(cm, names); torso = cm == ix['TORSO']; s0 = LE.window_size(torso); te = max(TA.extent(torso), 1)
@@ -61,7 +67,8 @@ def site_rows_batched(m, img, cm, names, ext, stc, wm, tq, chunk=8):
             crops += [cv2_resize(LE.crop_1280(img, x, y, s0)), cv2_resize(LE.crop_1280(img, cx, cy, sw))]
     emb = []
     for k in range(0, len(crops), chunk):
-        m['P'].set_image_batch(crops[k:k + chunk])
+        with _amp():
+            m['P'].set_image_batch(crops[k:k + chunk])
         e = m['P']._features['image_embed']
         emb += list(torch.nn.functional.avg_pool2d(e.float(), 2).detach().cpu().numpy().astype(np.float16))
     pe, pw = {}, {}
@@ -87,6 +94,30 @@ def cv2_resize(crop):
 
 
 BATCH = os.environ.get('BT1_BATCH', '1') == '1'     # batched SAM encoding of the per-limb crops (BT-3 speed)
+FAST = os.environ.get('BT1_FAST', '1') == '1'
+AMP = os.environ.get('BT1_AMP', '0') == '1'
+POSE_REUSE = os.environ.get('BT1_POSE_REUSE', '0') == '1'
+COCO_FLIP = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]
+
+
+def _amp():
+    import torch, contextlib
+    if AMP and torch.cuda.is_available():
+        return torch.autocast('cuda', dtype=torch.bfloat16)
+    return contextlib.nullcontext()
+
+
+def mirror_det_pose(dp, W):
+    """(boxes, keypoints, scores) of an image -> the same for the image mirrored left to right (x -> W - 1 - x).
+    Only the 17 body keypoints are kept (the engine uses no others), with left and right swapped."""
+    boxes, k, s = dp
+    b = np.array(boxes, float) if len(boxes) else np.zeros((0, 4))
+    if len(b):
+        b = b.copy(); b[:, [0, 2]] = (W - 1) - b[:, [2, 0]]
+    if len(k):
+        k = np.asarray(k)[:, :17][:, COCO_FLIP].copy(); k[..., 0] = (W - 1) - k[..., 0]
+        s = np.asarray(s)[:, :17][:, COCO_FLIP]
+    return b, k, s
 
 
 class BT1Engine:
@@ -113,6 +144,12 @@ class BT1Engine:
         import eval_v3 as EV, test_a_masks as TA
         from side_kp import geodesic_fast
         TA.geodesic = geodesic_fast
+        if FAST:
+            import fastops
+            fastops.apply()
+            globals()['ndimage'] = fastops.ND
+        if os.environ.get('ORT_GPU') == '1' and hasattr(ort, 'preload_dlls'):
+            ort.preload_dlls()                          # CUDA and cuDNN from the torch wheels (onnxruntime-gpu >= 1.21)
         import bt1_limb as BL, parts as PT
         self.torch, self.cv2, self.EV, self.BL, self.PT = torch, cv2, EV, BL, PT
         self.m = EV.load_models(None, os.path.join(models_dir, 'lend3d.pt'), os.path.join(models_dir, 'lwound2.pt'))
@@ -122,8 +159,9 @@ class BT1Engine:
         self.net, self.tta = net, tta
         self.layer = DecisionLayer(decision_json)
 
-    def rows(self, img, flip=False):
-        """img: 1280x960 letterboxed RGB uint8. Returns (site rows keyed by anatomical site, frame dict, timings)."""
+    def rows(self, img, flip=False, det_pose=None):
+        """img: 1280x960 letterboxed RGB uint8. Returns (site rows keyed by anatomical site, frame dict, timings).
+        det_pose: optional (boxes, keypoints, scores) already in this image's coordinates (BT1_POSE_REUSE)."""
         torch, cv2, EV, BL = self.torch, self.cv2, self.EV, self.BL
         import torch.nn.functional as F
         import test_e as TE, test_e2 as T2
@@ -135,9 +173,13 @@ class BT1Engine:
         t = {}; t0 = time.time()
         if flip:
             img = np.ascontiguousarray(img[:, ::-1])
-        bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        boxes = self.m['det'](bgr)
-        k, s = self.m['wb'].pose_model(bgr, bboxes=boxes)
+        if det_pose is None:
+            bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+            boxes = self.m['det'](bgr)
+            k, s = self.m['wb'].pose_model(bgr, bboxes=boxes)
+        else:
+            boxes, k, s = det_pose
+        self._last_dp = (boxes, k, s)
         kxy = None
         if len(k):
             i = int(np.argmax(s[:, :17].mean(1))); kp = k[i]; kxy = kp[:17]
@@ -148,8 +190,10 @@ class BT1Engine:
         box = tuple(float(v) for v in max(boxes, key=lambda q: (q[2] - q[0]) * (q[3] - q[1]))[:4]) if len(boxes) else (0, 0, 1280, 960)
         crop, (X1, Y1, S) = square_crop(img, box, 0.15)
         x = (torch.from_numpy(cv2.resize(crop, (1024, 1024))).permute(2, 0, 1).float() / 255 - MEAN) / STD
+        with torch.no_grad(), _amp():
+            outs = self.net(x[None].to(self.dev))
+        outs = [o.float() for o in outs]; ps, pd = outs[0], outs[1]
         with torch.no_grad():
-            outs = self.net(x[None].to(self.dev)); ps, pd = outs[0], outs[1]
             s2 = max(int(round(S / 2)), 1)
             lab = F.interpolate(ps.float(), size=(s2, s2), mode='bilinear', align_corners=False)[0].argmax(0).cpu().numpy()
             pl = F.interpolate(pd.float(), size=(s2, s2), mode='bilinear', align_corners=False)[0].softmax(0)[0].cpu().numpy()
@@ -183,10 +227,11 @@ class BT1Engine:
         from d2pipe import letterbox
         img = letterbox(np.ascontiguousarray(rgb))
         ro, fo, to = self.rows(img, False)
+        dp = mirror_det_pose(self._last_dp, img.shape[1]) if POSE_REUSE else None
         P = self.layer.proba([features(ro[s]) for s in SITES])
         info = dict(frame=fo, t=to, rows=ro)
         if self.tta:
-            rf, ff, tf = self.rows(img, True)
+            rf, ff, tf = self.rows(img, True, dp)
             PF = self.layer.proba([features(rf[s]) for s in SITES])
             info.update(rows_flip=rf, t_flip=tf, p_orig=P.round(4).tolist(), p_flip=PF.round(4).tolist())
             P = 0.5 * (P + PF)

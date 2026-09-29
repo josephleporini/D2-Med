@@ -16,7 +16,7 @@ T0=$(date +%s); stage() { echo "=== STAGE $1 $(date -u +%T) elapsed $(( $(date +
 ( sleep $(python3 -c "print(int($MAX_H*3600))"); echo "BT3_WALLCLOCK_LIMIT reached"; pkill -P $$; kill $$ ) & WD=$!
 fail() {  # publish the log tail before exiting, so a self-terminated pod still leaves a diagnosis
   echo "BT3_FAIL $*"; kill $WD 2>/dev/null
-  if [ -d "${DD:-}/.git" ]; then mkdir -p $DD/results/${RESTAG:-bt3_a40} && tail -200 /workspace/probeB/logs/bt3_container.log > $DD/results/${RESTAG:-bt3_a40}/FAILED_log.txt; cp $OUT/parity_full.txt $DD/results/${RESTAG:-bt3_a40}/ 2>/dev/null; for f in $OUT/stderr_*.txt; do grep -v '"msg": "aux"' $f | tail -80 > $DD/results/${RESTAG:-bt3_a40}/FAILED_$(basename $f); done 2>/dev/null
+  if [ -d "${DD:-}/.git" ] && { [ ! -d "${IN:-/nonexistent}" ] || $PY $R/infra/guard_public.py $IN ${D5:-}; }; then  # G3: no inputs yet, or synthetic inputs mkdir -p $DD/results/${RESTAG:-bt3_a40} && tail -200 /workspace/probeB/logs/bt3_container.log > $DD/results/${RESTAG:-bt3_a40}/FAILED_log.txt; cp $OUT/parity_full.txt $DD/results/${RESTAG:-bt3_a40}/ 2>/dev/null; for f in $OUT/stderr_*.txt; do grep -v '"msg": "aux"' $f | tail -80 > $DD/results/${RESTAG:-bt3_a40}/FAILED_$(basename $f); done 2>/dev/null
     ls -la $P/models > $DD/results/${RESTAG:-bt3_a40}/FAILED_models_ls.txt 2>&1
     (cd $DD && git add --sparse -A results/${RESTAG:-bt3_a40} && git commit -qm "BT-3 early: failure log ($*)" && git pull -q --rebase origin main && git push -q origin main && echo FAIL_LOG_PUBLISHED); fi
   exit 5; }
@@ -82,6 +82,7 @@ $PY $R/tools/bt3_check.py score $OUT/run_full/predictions.json $OUT/rows_full.js
 
 stage P
 PUB=$DD/results/${RESTAG:-bt3_a40}; mkdir -p $PUB
+$PY $R/infra/guard_public.py $IN $D5 || fail "publish guard"
 cp $OUT/parity.json $OUT/score.json $OUT/conformance.txt $OUT/model.md5 $OUT/model_size.txt $OUT/gpu_mem.txt $OUT/stdout_*.txt $PUB/
 for f in $OUT/stderr_*.txt; do grep -v '"msg": "aux"' $f | tail -60 > $PUB/$(basename $f); done
 cp $OUT/run_full/predictions.json $PUB/predictions_dev5.json; gzip -c $OUT/rows_full.jsonl > $PUB/rows_full.jsonl.gz

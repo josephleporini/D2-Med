@@ -37,6 +37,7 @@ echo "=== SCORE $(date -u +%T)"
 $PY $R/tools/closeup_score.py $C/r "$C/x0_t*_sidec.jsonl" "$C/x1_t*_sidec.jsonl" $DD/results/bt1/decision_layer_bt1.json \
   $DD/results/bt1/limb/ledger.jsonl $C/score.json || fail score
 PUB=$DD/results/closeup_v1; mkdir -p $PUB $DD/dev5_closeup
+$PY $R/infra/guard_public.py $C/r || fail "publish guard"
 cp $C/score.json $C/render.log $PUB/; cat $C/x0_t*_sidec.jsonl > $PUB/rows_orig.jsonl; cat $C/x1_t*_sidec.jsonl > $PUB/rows_flip.jsonl
 cp $C/r/DK* $DD/dev5_closeup/
 cd $DD && git add --sparse -A results/closeup_v1 dev5_closeup && git commit -qm "Close-up framing robustness set: 120 dev5 casualties, BT-1 scored (commit $(cat $R/COMMIT))" \
